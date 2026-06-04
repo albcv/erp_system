@@ -1,0 +1,215 @@
+/* dashboard.css - Estilos para el dashboard del ERP */
+
+/* Reset y base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', 'Roboto', 'Inter', system-ui, -apple-system, sans-serif;
+    background: #f4f7fc;
+    color: #1e293b;
+    line-height: 1.5;
+}
+
+/* Navegación */
+.navbar {
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    color: white;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-brand {
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-decoration: none;
+    color: white;
+    letter-spacing: -0.5px;
+}
+
+.navbar-brand:hover {
+    color: #e2e8f0;
+}
+
+.navbar-user {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.welcome-text {
+    font-size: 0.95rem;
+}
+
+.btn-logout {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 0.4rem 1rem;
+    border-radius: 30px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: background 0.2s;
+}
+
+.btn-logout:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Contenedor principal */
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* Título y roles */
+.dashboard-header {
+    margin-bottom: 2rem;
+}
+
+.dashboard-header h2 {
+    font-size: 2rem;
+    font-weight: 600;
+    color: #0f172a;
+    margin-bottom: 0.5rem;
+}
+
+.roles-badge {
+    background: #e2e8f0;
+    display: inline-block;
+    padding: 0.3rem 1rem;
+    border-radius: 30px;
+    font-size: 0.85rem;
+    color: #1e293b;
+}
+
+/* Grid de tarjetas */
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.card {
+    background: white;
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 1px solid #eef2f6;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
+}
+
+.card h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Íconos decorativos (opcional: puedes agregar emojis o fuentes de iconos) */
+.card h3::before {
+    content: "📋";
+    font-size: 1.3rem;
+}
+
+/* Personalización de íconos por módulo (puedes ampliar) */
+.card h3[data-module="Customers"]::before { content: "👥"; }
+.card h3[data-module="Suppliers"]::before { content: "🏭"; }
+.card h3[data-module="Materials"]::before { content: "📦"; }
+.card h3[data-module="Purchases"]::before { content: "🛒"; }
+.card h3[data-module="Sales"]::before { content: "💰"; }
+.card h3[data-module="Inventory"]::before { content: "📊"; }
+.card h3[data-module="Accounting"]::before { content: "🧾"; }
+.card h3[data-module="Reporting"]::before { content: "📈"; }
+
+.permission-badge {
+    display: inline-block;
+    background: #e6f0ff;
+    color: #1e40af;
+    font-size: 0.75rem;
+    padding: 0.2rem 0.7rem;
+    border-radius: 20px;
+    margin-bottom: 1rem;
+}
+
+.card p {
+    color: #475569;
+    margin-bottom: 1.2rem;
+    font-size: 0.9rem;
+}
+
+.btn-access {
+    display: inline-block;
+    background: #3b82f6;
+    color: white;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.btn-access:hover {
+    background: #2563eb;
+}
+
+/* Mensaje de sin permisos */
+.no-permissions {
+    background: #fff5f5;
+    border-left: 5px solid #ef4444;
+    padding: 1.5rem;
+    border-radius: 16px;
+    margin-top: 2rem;
+    text-align: center;
+}
+
+.no-permissions h4 {
+    color: #b91c1c;
+    margin-bottom: 0.5rem;
+}
+
+.no-permissions p {
+    color: #7f1d1d;
+}
+
+/* Footer */
+.footer {
+    text-align: center;
+    margin-top: 3rem;
+    padding: 1.5rem;
+    color: #64748b;
+    font-size: 0.8rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .navbar {
+        flex-direction: column;
+        gap: 0.5rem;
+        text-align: center;
+    }
+    .container {
+        padding: 1rem;
+    }
+    .cards-grid {
+        grid-template-columns: 1fr;
+    }
+}

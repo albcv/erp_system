@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERP Dashboard</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'core/css/dashboard.css' %}">
+   
+</head>
+<body>
+
+{% block content %}
+<nav class="navbar">
+    <a href="#" class="navbar-brand">🏢 ERP System</a>
+    <div class="navbar-user">
+        <span class="welcome-text">Welcome, {{ user.first_name|default:user.username }}</span>
+        <a href="{% url 'logout' %}" class="btn-logout">🚪 Logout</a>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="dashboard-header">
+        <h2>Dashboard</h2>
+        <div class="roles-badge">
+            Assigned roles: <strong>{{ roles|join:", " }}</strong>
+        </div>
+    </div>
+
+    <div class="cards-grid">
+        {% if permissions.customers > 0 %}
+        <div class="card">
+            <h3 data-module="Customers">Customers</h3>
+            <div class="permission-badge">
+                {% if permissions.customers == 1 %}🔍 View only{% else %}✏️ Read and write{% endif %}
+            </div>
+            <p>Manage customer information, contacts, and history.</p>
+            <a href="#" class="btn-access">Access →</a>
+        </div>
+        {% endif %}
+
+        {% if permissions.suppliers > 0 %}
+        <div class="card">
+            <h3 data-module="Suppliers">Suppliers</h3>
+            <div class="permission-badge">
+                {% if permissions.suppliers == 1 %}🔍 View only{% else %}✏️ Read and write{% endif %}
+            </div>
+            <p>Manage supplier catalogs, contracts, and orders.</p>
+            <a href="#" class="btn-access">Access →</a>
+        </div>
+        {% endif %}
+
+        {% if permissions.materials > 0 %}
+        <div class="card">
+            <h3 data-module="Materials">Materials</h3>
+            <div class="permission-badge">
+                {% if permissions.materials == 1 %}🔍 View only{% else %}✏️ Read and write{% endif %}
+            </div>
+            <p>Control raw materials, stock, and specifications.</p>
+            <a href="#" class="btn-access">Access →</a>
+        </div>
+        {% endif %}
+
+        {% if permissions.purchases > 0 %}
+        <div class="card">
+            <h3 data-module="Purchases">Purchases</h3>
+            <div class="permission-badge">
+                {% if permissions.purchases == 1 %}🔍 View only{% else %}✏️ Read and write{% endif %}
+            </div>
+            <p>Purchase orders, receipts, and supplier invoices.</p>
+            <a href="#" class="btn-access">Access →</a>
+        </div>
+        {% endif %}
+
+        {% if permissions.sales > 0 %}
+        <div class="card">
+            <h3 data-module="Sales">Sales</h3>
+            <div class="permission-badge">
+                {% if permissions.sales == 1 %}🔍 View only{% else %}✏️ Read and write{% endif %}
+            </div>
+            <p>Sales orders, quotations, and customer invoices.</p>
+            <a href="#" class="btn-access">Access →</a>
+        </div>
+        {% endif %}
+
+        {% if permissions.inventory > 0 %}
+        <div class="card">
+            <h3 data-module="Inventory">Inventory</h3>
+            <div class="permission-badge">
+                {% if permissions.inventory == 1 %}🔍 View only{% else %}✏️ Read and write{% endif %}
+            </div>
+            <p>Real‑time stock levels, movements, and adjustments.</p>
+            <a href="#" class="btn-access">Access →</a>
+        </div>
+        {% endif %}
+
+        {% if permissions.accounting > 0 %}
+        <div class="card">
+            <h3 data-module="Accounting">Accounting</h3>
+            <div class="permission-badge">
+                {% if permissions.accounting == 1 %}🔍 View only{% else %}✏️ Read and write{% endif %}
+            </div>
+            <p>Ledger, journal entries, and financial reports.</p>
+            <a href="#" class="btn-access">Access →</a>
+        </div>
+        {% endif %}
+
+        {% if permissions.reporting > 0 %}
+        <div class="card">
+            <h3 data-module="Reporting">Reporting</h3>
+            <div class="permission-badge">
+                {% if permissions.reporting == 1 %}🔍 View only{% else %}✏️ Read and write{% endif %}
+            </div>
+            <p>Analytics, KPIs, and custom dashboards.</p>
+            <a href="#" class="btn-access">Access →</a>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if permissions.customers == 0 and permissions.suppliers == 0 and permissions.materials == 0 and permissions.purchases == 0 and permissions.sales == 0 and permissions.inventory == 0 and permissions.accounting == 0 and permissions.reporting == 0 %}
+    <div class="no-permissions">
+        <h4>⚠️ No permissions assigned</h4>
+        <p>You don't have permissions to access any system module. Please contact your administrator.</p>
+    </div>
+    {% endif %}
+</div>
+
+<footer class="footer">
+    &copy; {% now "Y" %} Enterprise Resource Planning System — Secure access
+</footer>
+{% endblock %}
+
+</body>
+</html>
