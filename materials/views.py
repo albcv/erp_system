@@ -6,6 +6,7 @@ from django.core.paginator import Paginator
 from django.db import models
 from users.models import UserRole
 
+
 # Create your views here.
 
 @login_required
@@ -20,7 +21,7 @@ def material_list(request):
 
     material_list = Material.objects.all()
 
-    id_material = request.GET.get('id')
+    id_material = request.GET.get('id_material')
     name = request.GET.get('name')
     material_type = request.GET.get('material_type')
     status = request.GET.get('status')
@@ -47,30 +48,28 @@ def material_list(request):
 
 @login_required
 def create_material(request):
-
-    max_permission = UserRole.objects.filter(user_id=request.user).aggregate(max_permission=models.Max('role_materials')['max_permission'] or 0)
-
+    max_permission = UserRole.objects.filter(user_id=request.user).aggregate(
+        max_perm=models.Max('role__materials')
+    )['max_perm'] or 0
 
     if max_permission == 0:
         return redirect('dashboard')
-    
     if max_permission == 1:
-        return redirect('materials')
-    
+        return redirect('materials:material_list')
 
     if request.method == 'POST':
         form = MaterialForm(request.POST)
-
         if form.is_valid():
-
             material = form.save(commit=False)
-            material.created_by= request.user
+            material.created_by = request.user
             material.save()
 
-            return redirect('materials:material_create')
-        
-        else:
-            form = MaterialForm()
+            # Determinar a dónde redirigir según el botón pulsado
+            if 'create_continue' in request.POST:
+                return redirect('materials:create_material')  
+            else:
+                return redirect('materials:material_list')
+    else:
+        form = MaterialForm()
 
-
-        return render(request, 'materials/material_form.html', {'form':form})
+    return render(request, 'materials/material_form.html', {'form': form})

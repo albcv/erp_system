@@ -1,0 +1,102 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Create Material{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'materials/css/material_form.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-header">
+        <h1>Create Material</h1>
+        <p>Add a new material to the inventory system</p>
+    </div>
+
+    <div class="form-card">
+        
+        <form method="post" action="">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <ul class="errorlist">
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            <div class="form-fields-column">
+                <!-- ID Material -->
+                <div class="form-field">
+                    <label for="{{ form.id_material.id_for_label }}">ID Material</label>
+                    {{ form.id_material }}
+                    {% if form.id_material.errors %}
+                        <ul class="errorlist">{% for error in form.id_material.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+                    {% endif %}
+                </div>
+
+                <!-- Name -->
+                <div class="form-field">
+                    <label for="{{ form.name.id_for_label }}">Name</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                        <ul class="errorlist">{% for error in form.name.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+                    {% endif %}
+                </div>
+
+                <!-- Description -->
+                <div class="form-field">
+                    <label for="{{ form.description.id_for_label }}">Description</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                        <ul class="errorlist">{% for error in form.description.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+                    {% endif %}
+                </div>
+
+                <!-- Unit (select con UNIT_CHOICES) -->
+                <div class="form-field">
+                    <label for="unit">Unit</label>
+                    <select name="unit" id="unit">
+                        <option value="unit" {% if form.unit.value == "unit" %}selected{% endif %}>Unit</option>
+                        <option value="kg" {% if form.unit.value == "kg" %}selected{% endif %}>Kilogram</option>
+                        <option value="m" {% if form.unit.value == "m" %}selected{% endif %}>Meter</option>
+                        <option value="piece" {% if form.unit.value == "piece" %}selected{% endif %}>Piece</option>
+                    </select>
+                    {% if form.unit.errors %}
+                        <ul class="errorlist">{% for error in form.unit.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+                    {% endif %}
+                </div>
+
+                <!-- Material Type (texto libre) -->
+                <div class="form-field">
+                    <label for="{{ form.material_type.id_for_label }}">Material Type</label>
+                    {{ form.material_type }}
+                    {% if form.material_type.errors %}
+                        <ul class="errorlist">{% for error in form.material_type.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+                    {% endif %}
+                </div>
+
+                <!-- Status (select con STATUS_CHOICES) -->
+                <div class="form-field">
+                    <label for="status">Status</label>
+                    <select name="status" id="status">
+                        <option value="Active" {% if form.status.value == "Active" %}selected{% endif %}>Active</option>
+                        <option value="Inactive" {% if form.status.value == "Inactive" %}selected{% endif %}>Inactive</option>
+                    </select>
+                    {% if form.status.errors %}
+                        <ul class="errorlist">{% for error in form.status.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <a href="{% url 'materials:material_list' %}" class="btn-cancel">Cancel</a>
+                <button type="submit" name="create" class="btn-submit">Create</button>
+                <button type="submit" name="create_continue" class="btn-submit btn-continue">Create and continue</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

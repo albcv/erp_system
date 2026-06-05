@@ -5,6 +5,28 @@
 {% block extra_css %}
 {% load static %}
 <link rel="stylesheet" href="{% static 'materials/css/material_list.css' %}">
+<style>
+    /* Estilos para las etiquetas de estado */
+    .status-badge {
+        display: inline-block;
+        padding: 0.3rem 0.8rem;
+        border-radius: 30px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-align: center;
+        min-width: 70px;
+    }
+    .status-active {
+        background-color: #d1fae5;
+        color: #065f46;
+        border: 1px solid #a7f3d0;
+    }
+    .status-inactive {
+        background-color: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -58,16 +80,23 @@
             <tbody>
                 {% for material in page_obj %}
                 <tr>
-                    <td>{{ material.id }}</td>
+                    <td>{{ material.id_material }}</td>
                     <td>{{ material.name }}</td>
                     <td>{{ material.description }}</td>
                     <td>{{ material.unit }}</td>
                     <td>{{ material.material_type }}</td>
-                    <td>{{ material.status }}</td>
+                    <td>
+                        <span class="status-badge 
+                            {% if material.status == 'Active' %}status-active
+                            {% elif material.status == 'Inactive' %}status-inactive
+                            {% endif %}">
+                            {{ material.status }}
+                        </span>
+                    </td>
                     <td>{{ material.created_by.username }}</td>
                     <td class="action-links">
-                        <a href="{% url 'materials:edit_material' material.id %}">Edit</a>
-                        <a href="{% url 'materials:delete_material' material.id %}">Delete</a>
+                        <a href="">Edit</a>
+                        <a href="">Delete</a>
                     </td>
                 </tr>
                 {% empty %}

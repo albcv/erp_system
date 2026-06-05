@@ -6,5 +6,5 @@ class MaterialForm(forms.ModelForm):
 
         class Meta:
                 model = Material
-                fields = ['id', 'name', 'description', 'unit', 'material_type', 'status']
+                fields = ['id_material', 'name', 'description', 'unit', 'material_type', 'status']
             
