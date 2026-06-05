@@ -1,73 +1,4 @@
-/* dashboard.css - Estilos para el dashboard del ERP */
-
-/* Reset y base */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    font-family: 'Segoe UI', 'Roboto', 'Inter', system-ui, -apple-system, sans-serif;
-    background: #f4f7fc;
-    color: #1e293b;
-    line-height: 1.5;
-}
-
-/* Navegación */
-.navbar {
-    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-    color: white;
-    padding: 1rem 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.navbar-brand {
-    font-size: 1.5rem;
-    font-weight: 700;
-    text-decoration: none;
-    color: white;
-    letter-spacing: -0.5px;
-}
-
-.navbar-brand:hover {
-    color: #e2e8f0;
-}
-
-.navbar-user {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.welcome-text {
-    font-size: 0.95rem;
-}
-
-.btn-logout {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    padding: 0.4rem 1rem;
-    border-radius: 30px;
-    text-decoration: none;
-    font-size: 0.9rem;
-    transition: background 0.2s;
-}
-
-.btn-logout:hover {
-    background: rgba(255, 255, 255, 0.3);
-}
-
-/* Contenedor principal */
-.container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 2rem;
-}
+/* dashboard.css - Estilos específicos del dashboard */
 
 /* Título y roles */
 .dashboard-header {
@@ -122,13 +53,13 @@ body {
     gap: 0.5rem;
 }
 
-/* Íconos decorativos (opcional: puedes agregar emojis o fuentes de iconos) */
+/* Íconos decorativos */
 .card h3::before {
     content: "📋";
     font-size: 1.3rem;
 }
 
-/* Personalización de íconos por módulo (puedes ampliar) */
+/* Personalización de íconos por módulo */
 .card h3[data-module="Customers"]::before { content: "👥"; }
 .card h3[data-module="Suppliers"]::before { content: "🏭"; }
 .card h3[data-module="Materials"]::before { content: "📦"; }
@@ -189,26 +120,8 @@ body {
     color: #7f1d1d;
 }
 
-/* Footer */
-.footer {
-    text-align: center;
-    margin-top: 3rem;
-    padding: 1.5rem;
-    color: #64748b;
-    font-size: 0.8rem;
-    border-top: 1px solid #e2e8f0;
-}
-
-/* Responsive */
+/* Responsive del dashboard */
 @media (max-width: 640px) {
-    .navbar {
-        flex-direction: column;
-        gap: 0.5rem;
-        text-align: center;
-    }
-    .container {
-        padding: 1rem;
-    }
     .cards-grid {
         grid-template-columns: 1fr;
     }

@@ -1,24 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ERP Dashboard</title>
-    {% load static %}
-    <link rel="stylesheet" href="{% static 'core/css/dashboard.css' %}">
-   
-</head>
-<body>
+{% extends "core/base.html" %}
+
+{% block title %}ERP Dashboard{% endblock %}
+
+{% block extra_css %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'core/css/dashboard.css' %}">
+{% endblock %}
 
 {% block content %}
-<nav class="navbar">
-    <a href="#" class="navbar-brand">🏢 ERP System</a>
-    <div class="navbar-user">
-        <span class="welcome-text">Welcome, {{ user.first_name|default:user.username }}</span>
-        <a href="{% url 'logout' %}" class="btn-logout">🚪 Logout</a>
-    </div>
-</nav>
-
 <div class="container">
     <div class="dashboard-header">
         <h2>Dashboard</h2>
@@ -57,7 +46,7 @@
                 {% if permissions.materials == 1 %}🔍 View only{% else %}✏️ Read and write{% endif %}
             </div>
             <p>Control raw materials, stock, and specifications.</p>
-            <a href="#" class="btn-access">Access →</a>
+            <a href="{% url 'materials:material_list' %}" class="btn-access">Access →</a>
         </div>
         {% endif %}
 
@@ -124,11 +113,4 @@
     </div>
     {% endif %}
 </div>
-
-<footer class="footer">
-    &copy; {% now "Y" %} Enterprise Resource Planning System — Secure access
-</footer>
 {% endblock %}
-
-</body>
-</html>
