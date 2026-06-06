@@ -16,6 +16,15 @@
 ### Crear Material
 <img src="img/create_material.png" alt="Formulario para crear un nuevo material">
 
+### Editar Material
+<img src="img/edit_material.png" alt="Formulario para crear un nuevo material">
+
+### Eliminar Material
+<img src="img/delete_material.png" alt="Formulario para crear un nuevo material">
+
+### Archivo CSV
+<img src="img/materials_csv.png" alt="Formulario para crear un nuevo material">
+
 
 
 
