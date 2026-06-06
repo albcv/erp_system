@@ -5,28 +5,6 @@
 {% block extra_css %}
 {% load static %}
 <link rel="stylesheet" href="{% static 'materials/css/material_list.css' %}">
-<style>
-    /* Estilos para las etiquetas de estado */
-    .status-badge {
-        display: inline-block;
-        padding: 0.3rem 0.8rem;
-        border-radius: 30px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        text-align: center;
-        min-width: 70px;
-    }
-    .status-active {
-        background-color: #d1fae5;
-        color: #065f46;
-        border: 1px solid #a7f3d0;
-    }
-    .status-inactive {
-        background-color: #fee2e2;
-        color: #991b1b;
-        border: 1px solid #fecaca;
-    }
-</style>
 {% endblock %}
 
 {% block content %}
@@ -57,9 +35,18 @@
             <div class="button-group">
                 <button type="submit" class="btn-filter">Filter</button>
                 <a href="{% url 'materials:material_list' %}" class="btn-clear">Clear</a>
+                <a href="?export=csv{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="btn-export" id="export-csv">📎 Export to CSV</a>
+
+                {% if permissions.materials == 2 %}
                 <a href="{% url 'materials:create_material' %}" class="btn-create">➕ Create Material</a>
+                {% endif %}
             </div>
         </form>
+    </div>
+
+    <!-- Contador de registros -->
+    <div class="record-count">
+        Showing {{ page_obj.start_index }} - {{ page_obj.end_index }} of {{ page_obj.paginator.count }} materials
     </div>
 
     <!-- Tabla de materiales -->
@@ -67,14 +54,16 @@
         <table class="material-table">
             <thead>
                 <tr>
-                    <th>ID Material</th>
-                    <th>Name</th>
-                    <th>Description</th>
-                    <th>Unit</th>
-                    <th>Type</th>
-                    <th>Status</th>
-                    <th>User</th>
-                    <th>Actions</th>
+                    <th scope="col">ID Material</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Description</th>
+                    <th scope="col">Unit</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">User</th>
+                    {% if permissions.materials == 2 %}
+                    <th scope="col">Actions</th>
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -94,10 +83,15 @@
                         </span>
                     </td>
                     <td>{{ material.created_by.username }}</td>
+                    {% if permissions.materials == 2 %}
                     <td class="action-links">
-                        <a href="">Edit</a>
-                        <a href="">Delete</a>
+                        <a href="{% url 'materials:edit_material' material.pk %}" class="btn-edit">Edit</a>
+                        <form action="{% url 'materials:delete_material' material.pk %}" method="POST" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-delete" onclick="return confirm('Are you sure you want to delete this material?')">Delete</button>
+                        </form>
                     </td>
+                    {% endif %}
                 </tr>
                 {% empty %}
                 <tr class="empty-row">

@@ -53,7 +53,7 @@
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-/* Botones */
+/* Grupo de botones */
 .button-group {
     display: flex;
     gap: 1rem;
@@ -108,6 +108,33 @@
     background: #059669;
 }
 
+/* Botón Export to CSV */
+.btn-export {
+    background: #10b981;
+    color: white;
+    text-decoration: none;
+    padding: 0.5rem 1.2rem;
+    border-radius: 30px;
+    font-weight: 600;
+    transition: background 0.2s;
+    display: inline-block;
+}
+
+.btn-export:hover {
+    background: #059669;
+}
+
+/* Contador de registros */
+.record-count {
+    background: #f1f5f9;
+    padding: 0.5rem 1rem;
+    border-radius: 30px;
+    font-size: 0.85rem;
+    color: #1e293b;
+    display: inline-block;
+    margin-bottom: 1rem;
+}
+
 /* Tabla */
 .table-wrapper {
     overflow-x: auto;
@@ -144,36 +171,64 @@
     background: #f8fafc;
 }
 
-/* Acciones */
+/* Etiquetas de estado */
+.status-badge {
+    display: inline-block;
+    padding: 0.3rem 0.8rem;
+    border-radius: 30px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+    min-width: 70px;
+}
+
+.status-active {
+    background-color: #d1fae5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+}
+
+.status-inactive {
+    background-color: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+/* Botones de acción */
 .action-links {
     display: flex;
     gap: 0.8rem;
+    align-items: center;
 }
 
-.action-links a {
-    text-decoration: none;
-    font-size: 0.85rem;
-    font-weight: 500;
-    padding: 0.3rem 0.8rem;
-    border-radius: 20px;
-    transition: all 0.2s;
-}
-
-.action-links a:first-child {
+.btn-edit {
     background: #3b82f6;
     color: white;
+    text-decoration: none;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    transition: background 0.2s;
 }
 
-.action-links a:first-child:hover {
+.btn-edit:hover {
     background: #2563eb;
 }
 
-.action-links a:last-child {
+.btn-delete {
     background: #ef4444;
     color: white;
+    border: none;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
 }
 
-.action-links a:last-child:hover {
+.btn-delete:hover {
     background: #dc2626;
 }
 

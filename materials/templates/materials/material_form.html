@@ -1,7 +1,9 @@
 {% extends "core/base.html" %}
 {% load static %}
 
-{% block title %}Create Material{% endblock %}
+{% block title %}
+    {% if material or form.instance.pk %}Edit Material{% else %}Create Material{% endif %}
+{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'materials/css/material_form.css' %}">
@@ -10,12 +12,16 @@
 {% block content %}
 <div class="form-container">
     <div class="form-header">
-        <h1>Create Material</h1>
-        <p>Add a new material to the inventory system</p>
+        {% if material or form.instance.pk %}
+            <h1>Edit Material</h1>
+            <p>Update the material information in the inventory system</p>
+        {% else %}
+            <h1>Create Material</h1>
+            <p>Add a new material to the inventory system</p>
+        {% endif %}
     </div>
 
     <div class="form-card">
-        
         <form method="post" action="">
             {% csrf_token %}
 
@@ -93,8 +99,12 @@
 
             <div class="form-actions">
                 <a href="{% url 'materials:material_list' %}" class="btn-cancel">Cancel</a>
-                <button type="submit" name="create" class="btn-submit">Create</button>
-                <button type="submit" name="create_continue" class="btn-submit btn-continue">Create and continue</button>
+                {% if material or form.instance.pk %}
+                    <button type="submit" name="edit" class="btn-submit">Update</button>
+                {% else %}
+                    <button type="submit" name="create" class="btn-submit">Create</button>
+                    <button type="submit" name="create_continue" class="btn-submit btn-continue">Create and continue</button>
+                {% endif %}
             </div>
         </form>
     </div>

@@ -1,10 +1,12 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import Material
 from .forms import MaterialForm
 from django.core.paginator import Paginator
 from django.db import models
 from users.models import UserRole
+from django.http import HttpResponse
+import csv
 
 
 # Create your views here.
@@ -38,6 +40,9 @@ def material_list(request):
     if status is not None and status != '':
         material_list = material_list.filter(status__icontains=status)
 
+    
+    if request.GET.get('export') == 'csv':
+        return export_to_csv(material_list)
 
     paginator = Paginator(material_list, 10)
     page_number = request.GET.get('page')
@@ -73,3 +78,91 @@ def create_material(request):
         form = MaterialForm()
 
     return render(request, 'materials/material_form.html', {'form': form})
+
+
+@login_required
+def edit_material(request, pk):
+
+    material = get_object_or_404(Material,pk=pk)
+
+
+    max_permission = UserRole.objects.filter(user_id=request.user).aggregate(
+        max_perm=models.Max('role__materials')
+    )['max_perm'] or 0
+
+    if max_permission == 0:
+        return redirect('dashboard')
+    if max_permission == 1:
+        return redirect('materials:material_list')
+    
+
+    if request.method == 'POST':
+        form = MaterialForm(request.POST, instance=material)
+
+        if form.is_valid():
+            form.save()
+            return redirect("materials:material_list")
+        
+
+    else:
+        form = MaterialForm(instance=material)
+
+    context = {
+        'form':form,
+        'material':material,
+    }
+
+    return render(request, 'materials/material_form.html', context)
+
+
+
+@login_required
+def delete_material(request, pk):
+
+    max_permission = UserRole.objects.filter(user_id=request.user).aggregate(
+        max_perm=models.Max('role__materials')
+    )['max_perm'] or 0
+
+    if max_permission == 0:
+        return redirect('dashboard')
+    if max_permission == 1:
+        return redirect('materials:material_list')
+
+
+    material = get_object_or_404(Material, pk=pk)
+
+
+    if request.method == 'POST':
+        material.delete()
+        
+    return redirect('materials:material_list')
+    
+
+
+def export_to_csv(queryset):
+    """Exporta el queryset de materiales a un archivo CSV"""
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="materials.csv"'
+    response.write('\ufeff'.encode("utf-8")) 
+    writer = csv.writer(response)
+
+    writer.writerow(['ID Material', 'Name', 'Description', 'Unit', 'Type', 'Status', 'Created_by', 'Created_at', 'Updated_at'])
+
+    for material in queryset:
+        writer.writerow([
+            material.id_material,
+            material.name,
+            material.description,
+            material.unit,
+            material.material_type,
+            material.status,
+            material.created_by.username if material.created_by else 'N/A',
+            material.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            material.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+        ])
+
+    return response
+
+    
+    
+    
