@@ -39,7 +39,7 @@ def material_list(request):
         material_list = material_list.filter(material_type__icontains=material_type)
 
     if status is not None and status != '':
-        material_list = material_list.filter(status__icontains=status)
+        material_list = material_list.filter(status=status)
 
     
     if request.GET.get('export') == 'csv':

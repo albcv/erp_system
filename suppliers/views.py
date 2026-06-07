@@ -39,7 +39,7 @@ def supplier_list(request):
         supplier_list = supplier_list.filter(country__icontains=country)
 
     if status is not None and status != '':
-        supplier_list = supplier_list.filter(status__icontains=status)
+        supplier_list = supplier_list.filter(status=status)
 
     
     if request.GET.get('export') == 'csv':
