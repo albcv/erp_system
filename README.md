@@ -28,6 +28,9 @@
 ### Gestión de Proveedores
 <img src="img/suppliers.png" alt="Vista de gestión de proveedores">
 
+### Panel de administración
+<img src="img/panel_admin.png" alt="Vista de gestión de proveedores">
+
 
 
 
