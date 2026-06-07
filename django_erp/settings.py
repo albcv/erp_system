@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'users',
     'core',
     'materials',
+    'suppliers',
     'inventory',
     'accounting',
     'purchases',

@@ -4,11 +4,11 @@
 
 {% block extra_css %}
 {% load static %}
-<link rel="stylesheet" href="{% static 'materials/css/material_list.css' %}">
+<link rel="stylesheet" href="{% static 'core/css/list.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="materials-container">
+<div class="list-container">
     <!-- Filtros -->
     <div class="filters-card">
         <form class="filter-form" method="get" action="{% url 'materials:material_list' %}">
@@ -35,8 +35,7 @@
             <div class="button-group">
                 <button type="submit" class="btn-filter">Filter</button>
                 <a href="{% url 'materials:material_list' %}" class="btn-clear">Clear</a>
-                <a href="?export=csv{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="btn-export" id="export-csv">📎 Export to CSV</a>
-
+                <a href="?export=csv{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="btn-export">📎 Export to CSV</a>
                 {% if permissions.materials == 2 %}
                 <a href="{% url 'materials:create_material' %}" class="btn-create">➕ Create Material</a>
                 {% endif %}
@@ -51,18 +50,18 @@
 
     <!-- Tabla de materiales -->
     <div class="table-wrapper">
-        <table class="material-table">
+        <table class="data-table">
             <thead>
                 <tr>
-                    <th scope="col">ID Material</th>
-                    <th scope="col">Name</th>
-                    <th scope="col">Description</th>
-                    <th scope="col">Unit</th>
-                    <th scope="col">Type</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">User</th>
+                    <th>ID Material</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Unit</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>User</th>
                     {% if permissions.materials == 2 %}
-                    <th scope="col">Actions</th>
+                    <th>Actions</th>
                     {% endif %}
                 </tr>
             </thead>

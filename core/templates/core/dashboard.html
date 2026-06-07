@@ -35,7 +35,7 @@
                 {% if permissions.suppliers == 1 %}🔍 View only{% else %}✏️ Read and write{% endif %}
             </div>
             <p>Manage supplier catalogs, contracts, and orders.</p>
-            <a href="#" class="btn-access">Access →</a>
+            <a href="{% url 'suppliers:supplier_list' %}" class="btn-access">Access →</a>
         </div>
         {% endif %}
 

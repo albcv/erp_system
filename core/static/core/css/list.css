@@ -1,7 +1,7 @@
-/* material_list.css - Estilos para la lista de materiales */
+/* list.css - Estilos comunes para listados (materiales, proveedores, etc.) */
 
 /* Contenedor principal */
-.materials-container {
+.list-container {
     max-width: 1400px;
     margin: 0 auto;
     padding: 2rem;
@@ -72,10 +72,7 @@
     cursor: pointer;
     transition: background 0.2s;
 }
-
-.btn-filter:hover {
-    background: #2563eb;
-}
+.btn-filter:hover { background: #2563eb; }
 
 .btn-clear {
     background: #64748b;
@@ -86,10 +83,7 @@
     font-weight: 600;
     transition: background 0.2s;
 }
-
-.btn-clear:hover {
-    background: #475569;
-}
+.btn-clear:hover { background: #475569; }
 
 .btn-create {
     background: #10b981;
@@ -101,14 +95,9 @@
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    transition: background 0.2s;
 }
+.btn-create:hover { background: #059669; }
 
-.btn-create:hover {
-    background: #059669;
-}
-
-/* Botón Export to CSV */
 .btn-export {
     background: #10b981;
     color: white;
@@ -116,13 +105,9 @@
     padding: 0.5rem 1.2rem;
     border-radius: 30px;
     font-weight: 600;
-    transition: background 0.2s;
     display: inline-block;
 }
-
-.btn-export:hover {
-    background: #059669;
-}
+.btn-export:hover { background: #059669; }
 
 /* Contador de registros */
 .record-count {
@@ -143,31 +128,27 @@
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
-.material-table {
+.data-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.9rem;
 }
-
-.material-table thead {
+.data-table thead {
     background: #f1f5f9;
 }
-
-.material-table th {
+.data-table th {
     padding: 1rem;
     text-align: left;
     font-weight: 700;
     color: #0f172a;
     border-bottom: 2px solid #e2e8f0;
 }
-
-.material-table td {
+.data-table td {
     padding: 0.8rem 1rem;
     border-bottom: 1px solid #e2e8f0;
     vertical-align: middle;
 }
-
-.material-table tbody tr:hover {
+.data-table tbody tr:hover {
     background: #f8fafc;
 }
 
@@ -181,13 +162,11 @@
     text-align: center;
     min-width: 70px;
 }
-
 .status-active {
     background-color: #d1fae5;
     color: #065f46;
     border: 1px solid #a7f3d0;
 }
-
 .status-inactive {
     background-color: #fee2e2;
     color: #991b1b;
@@ -200,7 +179,6 @@
     gap: 0.8rem;
     align-items: center;
 }
-
 .btn-edit {
     background: #3b82f6;
     color: white;
@@ -209,13 +187,8 @@
     font-weight: 600;
     padding: 0.3rem 0.8rem;
     border-radius: 20px;
-    transition: background 0.2s;
 }
-
-.btn-edit:hover {
-    background: #2563eb;
-}
-
+.btn-edit:hover { background: #2563eb; }
 .btn-delete {
     background: #ef4444;
     color: white;
@@ -225,12 +198,8 @@
     font-size: 0.75rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s;
 }
-
-.btn-delete:hover {
-    background: #dc2626;
-}
+.btn-delete:hover { background: #dc2626; }
 
 /* Paginación */
 .pagination-wrapper {
@@ -238,7 +207,6 @@
     display: flex;
     justify-content: center;
 }
-
 .pagination {
     display: flex;
     gap: 0.5rem;
@@ -248,26 +216,21 @@
     border-radius: 50px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
-
 .pagination a,
 .pagination span.current {
     padding: 0.4rem 0.9rem;
     border-radius: 30px;
     text-decoration: none;
     font-size: 0.85rem;
-    transition: all 0.2s;
 }
-
 .pagination a {
     background: #f1f5f9;
     color: #1e293b;
 }
-
 .pagination a:hover {
     background: #3b82f6;
     color: white;
 }
-
 .pagination span.current {
     background: #3b82f6;
     color: white;

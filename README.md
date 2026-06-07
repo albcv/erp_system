@@ -17,13 +17,16 @@
 <img src="img/create_material.png" alt="Formulario para crear un nuevo material">
 
 ### Editar Material
-<img src="img/edit_material.png" alt="Formulario para crear un nuevo material">
+<img src="img/edit_material.png" alt="Formulario para editar un material">
 
 ### Eliminar Material
-<img src="img/delete_material.png" alt="Formulario para crear un nuevo material">
+<img src="img/delete_material.png" alt="Eliminar un material">
 
 ### Archivo CSV
-<img src="img/materials_csv.png" alt="Formulario para crear un nuevo material">
+<img src="img/materials_csv.png" alt="Imagen del archivo CSV exportado">
+
+### Gestión de Proveedores
+<img src="img/suppliers.png" alt="Vista de gestión de proveedores">
 
 
 

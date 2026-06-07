@@ -21,7 +21,7 @@ def material_list(request):
         return redirect('dashboard')
     
 
-    material_list = Material.objects.all()
+    material_list = Material.objects.all().order_by('id_material')
 
     id_material = request.GET.get('id_material')
     name = request.GET.get('name')

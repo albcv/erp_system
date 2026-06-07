@@ -1,4 +1,4 @@
-/* material_form.css - Estilos para el formulario de materiales (versión en columna única) */
+/* form.css - Estilos genéricos para formularios (crear/editar) */
 
 /* Contenedor principal */
 .form-container {
@@ -7,7 +7,7 @@
     padding: 2rem;
 }
 
-/* Título de página */
+/* Encabezado del formulario */
 .form-header {
     margin-bottom: 2rem;
     text-align: center;
@@ -29,7 +29,7 @@
     font-size: 1rem;
 }
 
-/* Tarjeta del formulario */
+/* Tarjeta blanca del formulario */
 .form-card {
     background: white;
     border-radius: 28px;
@@ -45,7 +45,7 @@
     gap: 1.8rem;
 }
 
-/* Campo individual */
+/* Grupo campo + etiqueta */
 .form-field {
     display: flex;
     flex-direction: column;
@@ -62,9 +62,9 @@
 .form-field label .required {
     color: #ef4444;
     margin-left: 0.2rem;
-    font-size: 1rem;
 }
 
+/* Inputs, selects, textareas */
 .form-field input,
 .form-field select,
 .form-field textarea {
@@ -94,7 +94,7 @@
     background-color: white;
 }
 
-/* Errores */
+/* Mensajes de error */
 .errorlist {
     background-color: #fee2e2;
     color: #b91c1c;
@@ -114,7 +114,7 @@
     margin-top: 0.2rem;
 }
 
-/* Grupo de botones */
+/* Botones de acción */
 .form-actions {
     display: flex;
     gap: 1.2rem;
@@ -134,7 +134,6 @@
     transition: all 0.2s;
     border: 1px solid #cbd5e1;
 }
-
 .btn-cancel:hover {
     background: #e2e8f0;
     transform: translateY(-2px);
@@ -152,11 +151,19 @@
     transition: all 0.2s;
     box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
 }
-
 .btn-submit:hover {
     background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
     transform: translateY(-2px);
     box-shadow: 0 6px 12px rgba(37, 99, 235, 0.3);
+}
+
+/* Botón específico "Crear y continuar" (opcional) */
+.btn-continue {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+}
+.btn-continue:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
 }
 
 /* Responsive */
@@ -175,13 +182,14 @@
         gap: 0.8rem;
     }
     .btn-cancel,
-    .btn-submit {
+    .btn-submit,
+    .btn-continue {
         text-align: center;
         width: 100%;
     }
 }
 
-/* Mejora para inputs */
+/* Utilidades globales para inputs */
 input[type="text"],
 input[type="number"],
 input[type="email"],
@@ -190,17 +198,7 @@ textarea {
     font-size: 1rem;
     letter-spacing: 0.3px;
 }
-
-/* Placeholder */
 ::placeholder {
     color: #94a3b8;
     opacity: 1;
-}
-
-.btn-continue {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
-}
-.btn-continue:hover {
-    background: linear-gradient(135deg, #059669 0%, #047857 100%);
 }
