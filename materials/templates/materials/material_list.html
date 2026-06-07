@@ -11,33 +11,37 @@
 <div class="list-container">
     <!-- Filtros -->
     <div class="filters-card">
-        <form class="filter-form" method="get" action="{% url 'materials:material_list' %}">
-            <div class="form-group">
-                <label for="id_material">ID Material</label>
-                <input type="text" name="id_material" id="id_material" value="{{ request.GET.id_material }}">
+        <form method="get" action="{% url 'materials:material_list' %}">
+            <div class="filter-grid">
+                <div class="filter-field">
+                    <label for="id_material">ID Material</label>
+                    <input type="text" name="id_material" id="id_material" value="{{ request.GET.id_material }}">
+                </div>
+                <div class="filter-field">
+                    <label for="name">Name</label>
+                    <input type="text" name="name" id="name" value="{{ request.GET.name }}">
+                </div>
+                <div class="filter-field">
+                    <label for="material_type">Material Type</label>
+                    <input type="text" name="material_type" id="material_type" value="{{ request.GET.material_type }}">
+                </div>
+                <div class="filter-field">
+                    <label for="status">Status</label>
+                    <select name="status" id="status">
+                        <option value="" {% if not request.GET.status %}selected{% endif %}>All</option>
+                        <option value="Active" {% if request.GET.status == "Active" %}selected{% endif %}>Active</option>
+                        <option value="Inactive" {% if request.GET.status == "Inactive" %}selected{% endif %}>Inactive</option>
+                    </select>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="name">Name</label>
-                <input type="text" name="name" id="name" value="{{ request.GET.name }}">
-            </div>
-            <div class="form-group">
-                <label for="material_type">Material Type</label>
-                <input type="text" name="material_type" id="material_type" value="{{ request.GET.material_type }}">
-            </div>
-            <div class="form-group">
-                <label for="status">Status</label>
-                <select name="status" id="status">
-                    <option value="" {% if not request.GET.status %}selected{% endif %}>All</option>
-                    <option value="Active" {% if request.GET.status == "Active" %}selected{% endif %}>Active</option>
-                    <option value="Inactive" {% if request.GET.status == "Inactive" %}selected{% endif %}>Inactive</option>
-                </select>
-            </div>
+
             <div class="button-group">
                 <button type="submit" class="btn-filter">Filter</button>
                 <a href="{% url 'materials:material_list' %}" class="btn-clear">Clear</a>
                 <a href="?export=csv{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="btn-export">📎 Export to CSV</a>
                 {% if permissions.materials == 2 %}
-                <a href="{% url 'materials:create_material' %}" class="btn-create">➕ Create Material</a>
+                    <a href="{% url 'materials:material_bulk_create' %}" class="btn-bulk">📎 Bulk Upload (CSV)</a>
+                    <a href="{% url 'materials:create_material' %}" class="btn-create">➕ Create Material</a>
                 {% endif %}
             </div>
         </form>
@@ -94,7 +98,7 @@
                 </tr>
                 {% empty %}
                 <tr class="empty-row">
-                    <td colspan="8">No materials found</td>
+                    <td colspan="8">No materials found<\/td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -104,10 +108,10 @@
     <!-- Paginación -->
     {% if page_obj.has_other_pages %}
     <div class="pagination-wrapper">
-        <nav class="pagination">
+        <div class="pagination">
             {% if page_obj.has_previous %}
-            <a href="?page=1&id_material={{ request.GET.id_material }}&name={{ request.GET.name }}&material_type={{ request.GET.material_type }}&status={{ request.GET.status }}">First</a>
-            <a href="?page={{ page_obj.previous_page_number }}&id_material={{ request.GET.id_material }}&name={{ request.GET.name }}&material_type={{ request.GET.material_type }}&status={{ request.GET.status }}">Previous</a>
+                <a href="?page=1&id_material={{ request.GET.id_material }}&name={{ request.GET.name }}&material_type={{ request.GET.material_type }}&status={{ request.GET.status }}">First</a>
+                <a href="?page={{ page_obj.previous_page_number }}&id_material={{ request.GET.id_material }}&name={{ request.GET.name }}&material_type={{ request.GET.material_type }}&status={{ request.GET.status }}">Previous</a>
             {% endif %}
 
             {% for i in page_obj.paginator.page_range %}
@@ -119,10 +123,10 @@
             {% endfor %}
 
             {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}&id_material={{ request.GET.id_material }}&name={{ request.GET.name }}&material_type={{ request.GET.material_type }}&status={{ request.GET.status }}">Next</a>
-            <a href="?page={{ page_obj.paginator.num_pages }}&id_material={{ request.GET.id_material }}&name={{ request.GET.name }}&material_type={{ request.GET.material_type }}&status={{ request.GET.status }}">Last</a>
+                <a href="?page={{ page_obj.next_page_number }}&id_material={{ request.GET.id_material }}&name={{ request.GET.name }}&material_type={{ request.GET.material_type }}&status={{ request.GET.status }}">Next</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}&id_material={{ request.GET.id_material }}&name={{ request.GET.name }}&material_type={{ request.GET.material_type }}&status={{ request.GET.status }}">Last</a>
             {% endif %}
-        </nav>
+        </div>
     </div>
     {% endif %}
 </div>

@@ -1,0 +1,213 @@
+/* bulk_upload.css - Estilos para carga masiva de datos */
+
+/* Contenedor principal */
+.bulk-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* Encabezados */
+.bulk-container h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 0.5rem;
+}
+
+.bulk-container h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 1.5rem 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.bulk-container h4 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #334155;
+    margin: 1rem 0;
+}
+
+/* Mensajes de éxito / error */
+.messages {
+    margin-bottom: 1.5rem;
+}
+.alert {
+    padding: 0.8rem 1rem;
+    border-radius: 12px;
+    background-color: #f1f5f9;
+    border-left: 5px solid #3b82f6;
+    color: #1e293b;
+}
+.alert-success {
+    background-color: #d1fae5;
+    border-left-color: #10b981;
+    color: #065f46;
+}
+.alert-error {
+    background-color: #fee2e2;
+    border-left-color: #ef4444;
+    color: #991b1b;
+}
+
+/* Tarjeta de subida */
+.upload-card {
+    background: white;
+    border-radius: 24px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+    border: 1px solid #eef2f6;
+}
+
+.upload-card p {
+    color: #475569;
+    margin-bottom: 1rem;
+}
+
+/* Botón de descarga de template */
+.btn-template {
+    display: inline-block;
+    background: #3b82f6;
+    color: white;
+    text-decoration: none;
+    padding: 0.5rem 1.2rem;
+    border-radius: 30px;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    transition: background 0.2s;
+}
+.btn-template:hover {
+    background: #2563eb;
+}
+
+/* Formulario */
+.form-group-bulk {
+    margin-bottom: 1.5rem;
+}
+.form-group-bulk label {
+    display: block;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+}
+.form-group-bulk input[type="file"] {
+    padding: 0.6rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 16px;
+    width: 100%;
+    background: #f8fafc;
+}
+.help-text {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-top: 0.3rem;
+}
+
+/* Grupo de botones */
+.button-group-bulk {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+.btn-cancel-bulk {
+    background: #f1f5f9;
+    color: #1e293b;
+    text-decoration: none;
+    padding: 0.6rem 1.5rem;
+    border-radius: 30px;
+    font-weight: 600;
+    border: 1px solid #cbd5e1;
+}
+.btn-cancel-bulk:hover {
+    background: #e2e8f0;
+}
+.btn-submit-bulk {
+    background: #10b981;
+    color: white;
+    border: none;
+    padding: 0.6rem 1.8rem;
+    border-radius: 30px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.btn-submit-bulk:hover {
+    background: #059669;
+}
+
+/* Reporte de resultados */
+.stats-grid {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin: 1.5rem 0;
+}
+.stat-card {
+    background: #f8fafc;
+    padding: 1rem 1.5rem;
+    border-radius: 20px;
+    text-align: center;
+    flex: 1;
+    min-width: 150px;
+}
+.stat-card span {
+    font-size: 2rem;
+    font-weight: 700;
+    display: block;
+    color: #0f172a;
+}
+.stat-card.success span { color: #10b981; }
+.stat-card.error span { color: #ef4444; }
+
+/* Tabla de errores / éxito */
+.error-list, .success-list {
+    background: white;
+    border-radius: 20px;
+    border: 1px solid #eef2f6;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+}
+.error-item, .success-item {
+    padding: 1rem;
+    border-bottom: 1px solid #eef2f6;
+}
+.error-item:last-child, .success-item:last-child {
+    border-bottom: none;
+}
+.error-item {
+    background: #fff5f5;
+}
+.error-item p, .success-item p {
+    margin: 0 0 0.5rem 0;
+    font-weight: 500;
+}
+.error-item ul {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+.error-item li {
+    color: #dc2626;
+    font-size: 0.9rem;
+}
+
+/* Botón final */
+.back-link {
+    margin-top: 1.5rem;
+    text-align: center;
+}
+.back-link a {
+    display: inline-block;
+    background: #3b82f6;
+    color: white;
+    text-decoration: none;
+    padding: 0.6rem 1.8rem;
+    border-radius: 30px;
+    font-weight: 600;
+}
+.back-link a:hover {
+    background: #2563eb;
+}

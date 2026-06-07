@@ -1,56 +1,57 @@
 {% extends "core/base.html" %}
+{% load static %}
 
 {% block title %}Suppliers{% endblock %}
 
 {% block extra_css %}
-{% load static %}
 <link rel="stylesheet" href="{% static 'core/css/list.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="list-container"> 
-    <!-- Filtros -->
+<div class="list-container">
     <div class="filters-card">
-        <form class="filter-form" method="get" action="{% url 'suppliers:supplier_list' %}">
-            <div class="form-group">
-                <label for="id_supplier">ID Supplier</label>
-                <input type="text" name="id_supplier" id="id_supplier" value="{{ request.GET.id_supplier }}">
+        <form method="get" action="{% url 'suppliers:supplier_list' %}">
+            <div class="filter-grid">
+                <div class="filter-field">
+                    <label>ID Supplier</label>
+                    <input type="text" name="id_supplier" value="{{ request.GET.id_supplier }}">
+                </div>
+                <div class="filter-field">
+                    <label>Name</label>
+                    <input type="text" name="name" value="{{ request.GET.name }}">
+                </div>
+                <div class="filter-field">
+                    <label>Country</label>
+                    <input type="text" name="country" value="{{ request.GET.country }}">
+                </div>
+                <div class="filter-field">
+                    <label>Status</label>
+                    <select name="status">
+                        <option value="">All</option>
+                        <option value="Active" {% if request.GET.status == "Active" %}selected{% endif %}>Active</option>
+                        <option value="Inactive" {% if request.GET.status == "Inactive" %}selected{% endif %}>Inactive</option>
+                    </select>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="name">Name</label>
-                <input type="text" name="name" id="name" value="{{ request.GET.name }}">
-            </div>
-            <div class="form-group">
-                <label for="country">Country</label>
-                <input type="text" name="country" id="country" value="{{ request.GET.country }}">
-            </div>
-            <div class="form-group">
-                <label for="status">Status</label>
-                <select name="status" id="status">
-                    <option value="" {% if not request.GET.status %}selected{% endif %}>All</option>
-                    <option value="Active" {% if request.GET.status == "Active" %}selected{% endif %}>Active</option>
-                    <option value="Inactive" {% if request.GET.status == "Inactive" %}selected{% endif %}>Inactive</option>
-                </select>
-            </div>
+
             <div class="button-group">
                 <button type="submit" class="btn-filter">Filter</button>
                 <a href="{% url 'suppliers:supplier_list' %}" class="btn-clear">Clear</a>
                 <a href="?export=csv{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="btn-export">📎 Export to CSV</a>
                 {% if permissions.suppliers == 2 %}
-                <a href="{% url 'suppliers:create_supplier' %}" class="btn-create">➕ Create Supplier</a>
+                    <a href="{% url 'suppliers:supplier_bulk_create' %}" class="btn-bulk">📎 Bulk Upload (CSV)</a>
+                    <a href="{% url 'suppliers:create_supplier' %}" class="btn-create">➕ Create Supplier</a>
                 {% endif %}
             </div>
         </form>
     </div>
 
-    <!-- Contador de registros -->
     <div class="record-count">
         Showing {{ page_obj.start_index }} - {{ page_obj.end_index }} of {{ page_obj.paginator.count }} suppliers
     </div>
 
-    <!-- Tabla de proveedores -->
     <div class="table-wrapper">
-        <table class="data-table">  
+        <table class="data-table">
             <thead>
                 <tr>
                     <th>ID Supplier</th>
@@ -59,9 +60,7 @@
                     <th>Category</th>
                     <th>Status</th>
                     <th>Created By</th>
-                    {% if permissions.suppliers == 2 %}
-                    <th>Actions</th>
-                    {% endif %}
+                    {% if permissions.suppliers == 2 %}<th>Actions</th>{% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -70,12 +69,9 @@
                     <td>{{ supplier.id_supplier }}</td>
                     <td>{{ supplier.name }}</td>
                     <td>{{ supplier.country }}</td>
-                    <td>{{ supplier.get_category_display|default:supplier.category }}</td>  
+                    <td>{{ supplier.get_category_display|default:supplier.category }}</td>
                     <td>
-                        <span class="status-badge 
-                            {% if supplier.status == 'Active' %}status-active
-                            {% elif supplier.status == 'Inactive' %}status-inactive
-                            {% endif %}">
+                        <span class="status-badge {% if supplier.status == 'Active' %}status-active{% else %}status-inactive{% endif %}">
                             {{ supplier.status }}
                         </span>
                     </td>
@@ -91,21 +87,18 @@
                     {% endif %}
                 </tr>
                 {% empty %}
-                <tr class="empty-row">
-                    <td colspan="7">No suppliers found</td>
-                </tr>
+                <tr class="empty-row"><td colspan="7">No suppliers found</td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 
-    <!-- Paginación -->
     {% if page_obj.has_other_pages %}
     <div class="pagination-wrapper">
-        <nav class="pagination">
+        <div class="pagination">
             {% if page_obj.has_previous %}
-            <a href="?page=1&id_supplier={{ request.GET.id_supplier }}&name={{ request.GET.name }}&country={{ request.GET.country }}&status={{ request.GET.status }}">First</a>
-            <a href="?page={{ page_obj.previous_page_number }}&id_supplier={{ request.GET.id_supplier }}&name={{ request.GET.name }}&country={{ request.GET.country }}&status={{ request.GET.status }}">Previous</a>
+                <a href="?page=1&id_supplier={{ request.GET.id_supplier }}&name={{ request.GET.name }}&country={{ request.GET.country }}&status={{ request.GET.status }}">First</a>
+                <a href="?page={{ page_obj.previous_page_number }}&id_supplier={{ request.GET.id_supplier }}&name={{ request.GET.name }}&country={{ request.GET.country }}&status={{ request.GET.status }}">Previous</a>
             {% endif %}
 
             {% for i in page_obj.paginator.page_range %}
@@ -117,10 +110,10 @@
             {% endfor %}
 
             {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}&id_supplier={{ request.GET.id_supplier }}&name={{ request.GET.name }}&country={{ request.GET.country }}&status={{ request.GET.status }}">Next</a>
-            <a href="?page={{ page_obj.paginator.num_pages }}&id_supplier={{ request.GET.id_supplier }}&name={{ request.GET.name }}&country={{ request.GET.country }}&status={{ request.GET.status }}">Last</a>
+                <a href="?page={{ page_obj.next_page_number }}&id_supplier={{ request.GET.id_supplier }}&name={{ request.GET.name }}&country={{ request.GET.country }}&status={{ request.GET.status }}">Next</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}&id_supplier={{ request.GET.id_supplier }}&name={{ request.GET.name }}&country={{ request.GET.country }}&status={{ request.GET.status }}">Last</a>
             {% endif %}
-        </nav>
+        </div>
     </div>
     {% endif %}
 </div>

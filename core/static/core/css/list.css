@@ -1,4 +1,4 @@
-/* list.css - Estilos comunes para listados (materiales, proveedores, etc.) */
+/* list.css - Estilos genéricos para listados (proveedores, materiales, etc.) */
 
 /* Contenedor principal */
 .list-container {
@@ -16,50 +16,36 @@
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
-.filter-form {
+/* Grid de filtros */
+.filter-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1.5rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
 }
 
-.form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.form-group label {
+.filter-field label {
     font-weight: 600;
-    color: #1e293b;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    display: block;
+    margin-bottom: 0.25rem;
 }
 
-.form-group input,
-.form-group select {
-    padding: 0.6rem 0.8rem;
-    border: 2px solid #e2e8f0;
+.filter-field input,
+.filter-field select {
+    width: 100%;
+    padding: 0.6rem;
     border-radius: 12px;
+    border: 2px solid #e2e8f0;
     font-size: 0.9rem;
-    transition: all 0.2s;
 }
 
-.form-group input:focus,
-.form-group select:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-/* Grupo de botones */
+/* Grupo de botones horizontales */
 .button-group {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
+    display: flex !important;
+    flex-direction: row !important;
     flex-wrap: wrap;
-    margin-top: 0.5rem;
+    gap: 0.75rem;
+    margin-top: 1rem;
 }
 
 .btn-filter {
@@ -68,9 +54,8 @@
     border: none;
     padding: 0.6rem 1.5rem;
     border-radius: 30px;
-    font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s;
+    font-weight: 600;
 }
 .btn-filter:hover { background: #2563eb; }
 
@@ -81,12 +66,31 @@
     padding: 0.6rem 1.5rem;
     border-radius: 30px;
     font-weight: 600;
-    transition: background 0.2s;
 }
 .btn-clear:hover { background: #475569; }
 
-.btn-create {
+.btn-export {
     background: #10b981;
+    color: white;
+    text-decoration: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 30px;
+    font-weight: 600;
+}
+.btn-export:hover { background: #059669; }
+
+.btn-bulk {
+    background: #f97316;
+    color: white;
+    text-decoration: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 30px;
+    font-weight: 600;
+}
+.btn-bulk:hover { background: #ea580c; }
+
+.btn-create {
+    background: #3b82f6;
     color: white;
     text-decoration: none;
     padding: 0.6rem 1.5rem;
@@ -96,28 +100,16 @@
     align-items: center;
     gap: 0.5rem;
 }
-.btn-create:hover { background: #059669; }
-
-.btn-export {
-    background: #10b981;
-    color: white;
-    text-decoration: none;
-    padding: 0.5rem 1.2rem;
-    border-radius: 30px;
-    font-weight: 600;
-    display: inline-block;
-}
-.btn-export:hover { background: #059669; }
+.btn-create:hover { background: #2563eb; }
 
 /* Contador de registros */
 .record-count {
     background: #f1f5f9;
+    display: inline-block;
     padding: 0.5rem 1rem;
     border-radius: 30px;
-    font-size: 0.85rem;
-    color: #1e293b;
-    display: inline-block;
     margin-bottom: 1rem;
+    font-size: 0.85rem;
 }
 
 /* Tabla */
@@ -125,105 +117,98 @@
     overflow-x: auto;
     background: white;
     border-radius: 20px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .data-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.9rem;
 }
+
 .data-table thead {
     background: #f1f5f9;
 }
-.data-table th {
+
+.data-table th,
+.data-table td {
     padding: 1rem;
     text-align: left;
-    font-weight: 700;
-    color: #0f172a;
-    border-bottom: 2px solid #e2e8f0;
-}
-.data-table td {
-    padding: 0.8rem 1rem;
     border-bottom: 1px solid #e2e8f0;
-    vertical-align: middle;
 }
+
 .data-table tbody tr:hover {
     background: #f8fafc;
 }
 
-/* Etiquetas de estado */
+/* Etiqueta de estado */
 .status-badge {
     display: inline-block;
     padding: 0.3rem 0.8rem;
     border-radius: 30px;
     font-size: 0.8rem;
     font-weight: 600;
-    text-align: center;
-    min-width: 70px;
 }
+
 .status-active {
     background-color: #d1fae5;
     color: #065f46;
-    border: 1px solid #a7f3d0;
 }
+
 .status-inactive {
     background-color: #fee2e2;
     color: #991b1b;
-    border: 1px solid #fecaca;
 }
 
-/* Botones de acción */
+/* Acciones */
 .action-links {
     display: flex;
-    gap: 0.8rem;
-    align-items: center;
+    gap: 0.5rem;
 }
+
 .btn-edit {
     background: #3b82f6;
     color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
     text-decoration: none;
     font-size: 0.75rem;
     font-weight: 600;
-    padding: 0.3rem 0.8rem;
-    border-radius: 20px;
 }
 .btn-edit:hover { background: #2563eb; }
+
 .btn-delete {
     background: #ef4444;
     color: white;
     border: none;
     padding: 0.3rem 0.8rem;
     border-radius: 20px;
+    cursor: pointer;
     font-size: 0.75rem;
     font-weight: 600;
-    cursor: pointer;
 }
 .btn-delete:hover { background: #dc2626; }
 
 /* Paginación */
 .pagination-wrapper {
-    margin-top: 2rem;
     display: flex;
     justify-content: center;
+    margin-top: 2rem;
 }
+
 .pagination {
     display: flex;
     gap: 0.5rem;
-    flex-wrap: wrap;
     background: white;
-    padding: 0.8rem 1.2rem;
+    padding: 0.8rem;
     border-radius: 50px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
+
 .pagination a,
-.pagination span.current {
+.pagination .current {
     padding: 0.4rem 0.9rem;
     border-radius: 30px;
     text-decoration: none;
     font-size: 0.85rem;
-}
-.pagination a {
     background: #f1f5f9;
     color: #1e293b;
 }
@@ -231,7 +216,7 @@
     background: #3b82f6;
     color: white;
 }
-.pagination span.current {
+.pagination .current {
     background: #3b82f6;
     color: white;
     font-weight: 600;
@@ -242,4 +227,10 @@
     padding: 2rem;
     color: #64748b;
     font-style: italic;
+}
+
+.data-table th {
+    white-space: nowrap;         
+    padding: 1rem;               
+    
 }

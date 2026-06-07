@@ -1,12 +1,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import Supplier
-from .forms import SupplierForm
+from .forms import SupplierForm, CsvUploadForm
 from django.core.paginator import Paginator
 from django.db import models
 from users.models import UserRole
 from django.http import HttpResponse
-import csv
+from django.contrib import messages
+import csv, io
 
 
 # Create your views here.
@@ -181,6 +182,108 @@ def export_to_csv(queryset):
         ])
 
     return response
+
+
+@login_required
+def supplier_bulk_create(request):
+    max_permission = UserRole.objects.filter(user_id=request.user).aggregate(
+        max_perm=models.Max('role__suppliers')
+    )['max_perm'] or 0
+
+    if max_permission == 0:
+        return redirect('dashboard')
+    if max_permission == 1:
+        return redirect('suppliers:supplier_list')
+
+    if request.method == 'POST':
+        form = CsvUploadForm(request.POST, request.FILES)
+
+        if form.is_valid():
+            csv_file = request.FILES['csv_file']  
+            data_set = None
+
+            try:
+                data_set = csv_file.read().decode('UTF-8')
+            except UnicodeDecodeError:
+                try:
+                    csv_file.seek(0)
+                    data_set = csv_file.read().decode('ISO-8859-1')
+                except Exception:
+                    return render(request, 'suppliers/supplier_bulk_upload.html', {'form': form})
+
+            if not data_set:
+                return render(request, 'suppliers/supplier_bulk_upload.html', {'form': form})
+
+            io_string = io.StringIO(data_set)
+            reader = csv.DictReader(io_string)
+
+           
+            if reader.fieldnames:
+                if reader.fieldnames[0].startswith('\ufeff'):
+                    reader.fieldnames[0] = reader.fieldnames[0].lstrip('\ufeff')
+                cleaned_fieldnames = [key.strip().lower() for key in reader.fieldnames]
+                reader.fieldnames = cleaned_fieldnames
+
+            successful_records = [] 
+            error_records = []
+            suppliers_to_create = []  
+
+            for i, row in enumerate(reader):
+                row_number = i + 2
+                form_data = {}
+
+                for key, value in row.items():
+                    cleaned_value = value.strip() if isinstance(value, str) else value
+                    form_data[key] = cleaned_value
+
+                form = SupplierForm(form_data)
+
+                if form.is_valid():
+                    supplier = form.save(commit=False)
+                    supplier.created_by = request.user
+                    suppliers_to_create.append(supplier)
+                    successful_records.append({'row': row_number, 'data': form_data})
+                else:
+                    errors = {field: ', '.join(err) for field, err in form.errors.items()}
+                    error_records.append({
+                        'row': row_number,
+                        'data': form_data,
+                        'errors': errors
+                    })
+
+            # Crear los proveedores en lote
+            if suppliers_to_create:
+                Supplier.objects.bulk_create(suppliers_to_create)
+
+            messages.success(request, f'Process finished. {len(successful_records)} suppliers created successfully.')
+
+            context = {
+                'form': CsvUploadForm(),  
+                'successful_count': len(successful_records),
+                'error_count': len(error_records),
+                'total_rows': len(successful_records) + len(error_records),
+                'error_records': error_records,
+                'successful_records': successful_records,
+                'report_generated': True,
+            }
+            return render(request, 'suppliers/supplier_bulk_upload.html', context)
+
+    else:
+        form = CsvUploadForm()
+
+    return render(request, 'suppliers/supplier_bulk_upload.html', {'form': form})
+
+
+
+@login_required
+def download_template_suppliers(request):
+    header_fields = ['id_supplier', 'legal_name', 'name', 'tax_id', 'country', 'state_province', 'city', 'address', 'zip_code', 'phone', 'email', 'contact_name',
+                           'contact_role', 'category', 'payment_terms','payment_method', 'currency', 'bank_account', 'status']
     
-    
-    
+    response = HttpResponse(content_type = 'text/csv')
+    response['Content-Disposition'] = 'attachment;filename="supplier_template.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow(header_fields)
+
+    return response
