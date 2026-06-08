@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Material
+from .models import Material, MaterialType, Unit
+from core.models import Status
 from .forms import MaterialForm, CsvUploadForm
 from django.core.paginator import Paginator
 from django.db import models
@@ -20,36 +21,47 @@ def material_list(request):
 
     if max_permission == 0:
         return redirect('dashboard')
-    
 
-    material_list = Material.objects.all().order_by('id_material')
+    # Obtener parámetros de filtro 
+    id_material = request.GET.get('id_material', '').strip()
+    name = request.GET.get('name', '').strip()
+    material_type_id = request.GET.get('material_type')
+    unit_id = request.GET.get('unit')
+    status_id = request.GET.get('status')
 
-    id_material = request.GET.get('id_material')
-    name = request.GET.get('name')
-    material_type = request.GET.get('material_type')
-    status = request.GET.get('status')
+    # Queryset base con relaciones cargadas
+    material_list = Material.objects.select_related('unit', 'material_type', 'status').order_by('id_material')
 
+    # Aplicar filtros
     if id_material:
         material_list = material_list.filter(id_material__icontains=id_material)
-
     if name:
         material_list = material_list.filter(name__icontains=name)
+    if material_type_id and material_type_id.isdigit():
+        material_list = material_list.filter(material_type_id=int(material_type_id))
+    if unit_id and unit_id.isdigit():
+        material_list = material_list.filter(unit_id=int(unit_id))
+    if status_id and status_id.isdigit():
+        material_list = material_list.filter(status_id=int(status_id))
 
-    if material_type:
-        material_list = material_list.filter(material_type__icontains=material_type)
-
-    if status is not None and status != '':
-        material_list = material_list.filter(status=status)
-
-    
+    # Exportación CSV
     if request.GET.get('export') == 'csv':
-        return export_to_csv(material_list)
+        return export_to_csv(material_list)   
 
+    # Paginación
     paginator = Paginator(material_list, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    return render(request, 'materials/material_list.html', {'page_obj': page_obj})
+    # Contexto para la plantilla
+    context = {
+        'page_obj': page_obj,
+        'permissions': {'materials': max_permission},
+        'material_types': MaterialType.objects.all().order_by('name'),
+        'units': Unit.objects.all().order_by('name'),
+        'statuses': Status.objects.all().order_by('name'),
+    }
+    return render(request, 'materials/material_list.html', context)
 
 
 @login_required
@@ -184,6 +196,31 @@ def material_bulk_create(request):
             csv_file = request.FILES['csv_file']
             data_set = None
 
+            status_map = {
+                status.name.strip().lower(): status
+                for status in Status.objects.all()
+            }
+
+            unit_map = {
+                unit.symbol.strip().lower(): unit
+                for unit in Unit.objects.all()
+            }
+
+            unit_map.update({
+                unit.name.strip().lower(): unit
+                for unit in Unit.objects.all()
+            })
+
+            material_type_map = {
+                material_type.symbol.strip().lower(): material_type
+                for material_type in MaterialType.objects.all()
+            }
+
+            material_type_map.update({
+                material_type.name.strip().lower(): material_type
+                for material_type in MaterialType.objects.all()
+            })
+
             try:
                 data_set = csv_file.read().decode('UTF-8')
             except UnicodeDecodeError:
@@ -215,6 +252,45 @@ def material_bulk_create(request):
                 for key, value in row.items():
                     cleaned_value = value.strip() if isinstance(value, str) else value
                     form_data[key] = cleaned_value
+
+                unit_value = form_data.get('unit', '').strip().lower()
+                unit_obj = unit_map.get(unit_value)
+
+                if unit_obj:
+                    form_data['unit'] = unit_obj.pk
+                else:
+                    error_records.append({
+                        'row': row_number,
+                        'data': row,
+                        'errors': {'unit': f'Unit "{unit_value}" not found or invalid.'}
+                    })
+                    continue
+
+                material_type_value = form_data.get('material_type', '').strip().lower()
+                material_type_obj = material_type_map.get(material_type_value)
+
+                if material_type_obj:
+                    form_data['material_type'] = material_type_obj.pk
+                else:
+                    error_records.append({
+                        'row': row_number,
+                        'data': row,
+                        'errors': {'material_type': f'Material Type "{material_type_value}" not found or invalid.'}
+                    })
+                    continue
+
+                status_value = form_data.get('status', '').strip().lower()
+                status_obj = status_map.get(status_value)
+
+                if status_obj:
+                    form_data['status'] = status_obj.pk
+                else:
+                    error_records.append({
+                        'row': row_number,
+                        'data': row,
+                        'errors': {'status': f'Status "{status_value}" not found or invalid.'}
+                    })
+                    continue
 
                 form = MaterialForm(form_data)
 

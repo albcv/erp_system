@@ -61,21 +61,16 @@
                     {% endif %}
                 </div>
 
-                <!-- Unit (select con UNIT_CHOICES) -->
+                <!-- Unit (FK) -->
                 <div class="form-field">
-                    <label for="unit">Unit</label>
-                    <select name="unit" id="unit">
-                        <option value="unit" {% if form.unit.value == "unit" %}selected{% endif %}>Unit</option>
-                        <option value="kg" {% if form.unit.value == "kg" %}selected{% endif %}>Kilogram</option>
-                        <option value="m" {% if form.unit.value == "m" %}selected{% endif %}>Meter</option>
-                        <option value="piece" {% if form.unit.value == "piece" %}selected{% endif %}>Piece</option>
-                    </select>
+                    <label for="{{ form.unit.id_for_label }}">Unit</label>
+                    {{ form.unit }}
                     {% if form.unit.errors %}
                         <ul class="errorlist">{% for error in form.unit.errors %}<li>{{ error }}</li>{% endfor %}</ul>
                     {% endif %}
                 </div>
 
-                <!-- Material Type (texto libre) -->
+                <!-- Material Type (FK) -->
                 <div class="form-field">
                     <label for="{{ form.material_type.id_for_label }}">Material Type</label>
                     {{ form.material_type }}
@@ -84,13 +79,10 @@
                     {% endif %}
                 </div>
 
-                <!-- Status (select con STATUS_CHOICES) -->
+                <!-- Status (FK) -->
                 <div class="form-field">
-                    <label for="status">Status</label>
-                    <select name="status" id="status">
-                        <option value="Active" {% if form.status.value == "Active" %}selected{% endif %}>Active</option>
-                        <option value="Inactive" {% if form.status.value == "Inactive" %}selected{% endif %}>Inactive</option>
-                    </select>
+                    <label for="{{ form.status.id_for_label }}">Status</label>
+                    {{ form.status }}
                     {% if form.status.errors %}
                         <ul class="errorlist">{% for error in form.status.errors %}<li>{{ error }}</li>{% endfor %}</ul>
                     {% endif %}

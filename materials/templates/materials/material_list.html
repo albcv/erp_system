@@ -1,9 +1,9 @@
 {% extends "core/base.html" %}
+{% load static %}
 
 {% block title %}Materials{% endblock %}
 
 {% block extra_css %}
-{% load static %}
 <link rel="stylesheet" href="{% static 'core/css/list.css' %}">
 {% endblock %}
 
@@ -23,14 +23,35 @@
                 </div>
                 <div class="filter-field">
                     <label for="material_type">Material Type</label>
-                    <input type="text" name="material_type" id="material_type" value="{{ request.GET.material_type }}">
+                    <select name="material_type" id="material_type">
+                        <option value="">All</option>
+                        {% for mt in material_types %}
+                            <option value="{{ mt.id }}" {% if request.GET.material_type|add:"0" == mt.id %}selected{% endif %}>
+                                {{ mt.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <label for="unit">Unit</label>
+                    <select name="unit" id="unit">
+                        <option value="">All</option>
+                        {% for u in units %}
+                            <option value="{{ u.id }}" {% if request.GET.unit|add:"0" == u.id %}selected{% endif %}>
+                                {{ u.symbol }} ({{ u.name }})
+                            </option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div class="filter-field">
                     <label for="status">Status</label>
                     <select name="status" id="status">
-                        <option value="" {% if not request.GET.status %}selected{% endif %}>All</option>
-                        <option value="Active" {% if request.GET.status == "Active" %}selected{% endif %}>Active</option>
-                        <option value="Inactive" {% if request.GET.status == "Inactive" %}selected{% endif %}>Inactive</option>
+                        <option value="">All</option>
+                        {% for s in statuses %}
+                            <option value="{{ s.id }}" {% if request.GET.status|add:"0" == s.id %}selected{% endif %}>
+                                {{ s.name }}
+                            </option>
+                        {% endfor %}
                     </select>
                 </div>
             </div>
@@ -75,14 +96,11 @@
                     <td>{{ material.id_material }}</td>
                     <td>{{ material.name }}</td>
                     <td>{{ material.description }}</td>
-                    <td>{{ material.unit }}</td>
-                    <td>{{ material.material_type }}</td>
+                    <td>{{ material.unit.symbol|default:material.unit }}</td>
+                    <td>{{ material.material_type.name|default:material.material_type }}</td>
                     <td>
-                        <span class="status-badge 
-                            {% if material.status == 'Active' %}status-active
-                            {% elif material.status == 'Inactive' %}status-inactive
-                            {% endif %}">
-                            {{ material.status }}
+                        <span class="status-badge status-{{ material.status.name|lower }}">
+                            {{ material.status.name }}
                         </span>
                     </td>
                     <td>{{ material.created_by.username }}</td>
@@ -98,7 +116,7 @@
                 </tr>
                 {% empty %}
                 <tr class="empty-row">
-                    <td colspan="8">No materials found<\/td>
+                    <td colspan="8">No materials found</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -110,21 +128,21 @@
     <div class="pagination-wrapper">
         <div class="pagination">
             {% if page_obj.has_previous %}
-                <a href="?page=1&id_material={{ request.GET.id_material }}&name={{ request.GET.name }}&material_type={{ request.GET.material_type }}&status={{ request.GET.status }}">First</a>
-                <a href="?page={{ page_obj.previous_page_number }}&id_material={{ request.GET.id_material }}&name={{ request.GET.name }}&material_type={{ request.GET.material_type }}&status={{ request.GET.status }}">Previous</a>
+                <a href="?page=1&id_material={{ request.GET.id_material }}&name={{ request.GET.name }}&material_type={{ request.GET.material_type }}&unit={{ request.GET.unit }}&status={{ request.GET.status }}">First</a>
+                <a href="?page={{ page_obj.previous_page_number }}&id_material={{ request.GET.id_material }}&name={{ request.GET.name }}&material_type={{ request.GET.material_type }}&unit={{ request.GET.unit }}&status={{ request.GET.status }}">Previous</a>
             {% endif %}
 
             {% for i in page_obj.paginator.page_range %}
                 {% if page_obj.number == i %}
                     <span class="current">{{ i }}</span>
                 {% else %}
-                    <a href="?page={{ i }}&id_material={{ request.GET.id_material }}&name={{ request.GET.name }}&material_type={{ request.GET.material_type }}&status={{ request.GET.status }}">{{ i }}</a>
+                    <a href="?page={{ i }}&id_material={{ request.GET.id_material }}&name={{ request.GET.name }}&material_type={{ request.GET.material_type }}&unit={{ request.GET.unit }}&status={{ request.GET.status }}">{{ i }}</a>
                 {% endif %}
             {% endfor %}
 
             {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}&id_material={{ request.GET.id_material }}&name={{ request.GET.name }}&material_type={{ request.GET.material_type }}&status={{ request.GET.status }}">Next</a>
-                <a href="?page={{ page_obj.paginator.num_pages }}&id_material={{ request.GET.id_material }}&name={{ request.GET.name }}&material_type={{ request.GET.material_type }}&status={{ request.GET.status }}">Last</a>
+                <a href="?page={{ page_obj.next_page_number }}&id_material={{ request.GET.id_material }}&name={{ request.GET.name }}&material_type={{ request.GET.material_type }}&unit={{ request.GET.unit }}&status={{ request.GET.status }}">Next</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}&id_material={{ request.GET.id_material }}&name={{ request.GET.name }}&material_type={{ request.GET.material_type }}&unit={{ request.GET.unit }}&status={{ request.GET.status }}">Last</a>
             {% endif %}
         </div>
     </div>
