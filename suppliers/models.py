@@ -29,7 +29,7 @@ class Supplier(models.Model):
     bank_account = models.CharField(max_length=150, verbose_name="Bank account")
 
     # Estado y auditoría
-    status = models.ForeignKey(Status, on_delete=models.PROTECT, default=1, verbose_name="Status")  # reutiliza core.Status
+    status = models.ForeignKey(Status, on_delete=models.PROTECT, default=1, verbose_name="Status")  
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, verbose_name="Created by")

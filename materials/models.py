@@ -12,7 +12,7 @@ class Unit(models.Model):
         verbose_name_plural = "Units"
 
     def __str__(self):
-        return f"{self.name} ({self.symbol})"
+        return f"{self.symbol}"
     
 
 class MaterialType(models.Model):
@@ -49,4 +49,4 @@ class Material(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.id_material} - {self.name}"
+        return f"{self.id_material}"
