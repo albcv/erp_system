@@ -36,6 +36,8 @@
 ### Panel de administración
 <img src="img/panel_admin.png" alt="Vista de gestión de proveedores">
 
+<img src="img/panel_admin2.png" alt="Vista de gestión de proveedores">
+
 
 
 

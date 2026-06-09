@@ -22,14 +22,35 @@
                 </div>
                 <div class="filter-field">
                     <label>Country</label>
-                    <input type="text" name="country" value="{{ request.GET.country }}">
+                    <select name="country">
+                        <option value="">All</option>
+                        {% for c in countries %}
+                        <option value="{{ c.id }}" {% if request.GET.country|add:"0" == c.id %}selected{% endif %}>
+                            {{ c.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <label>Category</label>
+                    <select name="category">
+                        <option value="">All</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}" {% if request.GET.category|add:"0" == cat.id %}selected{% endif %}>
+                            {{ cat.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div class="filter-field">
                     <label>Status</label>
                     <select name="status">
                         <option value="">All</option>
-                        <option value="Active" {% if request.GET.status == "Active" %}selected{% endif %}>Active</option>
-                        <option value="Inactive" {% if request.GET.status == "Inactive" %}selected{% endif %}>Inactive</option>
+                        {% for st in statuses %}
+                        <option value="{{ st.id }}" {% if request.GET.status|add:"0" == st.id %}selected{% endif %}>
+                            {{ st.name }}
+                        </option>
+                        {% endfor %}
                     </select>
                 </div>
             </div>
@@ -68,13 +89,9 @@
                 <tr>
                     <td>{{ supplier.id_supplier }}</td>
                     <td>{{ supplier.name }}</td>
-                    <td>{{ supplier.country }}</td>
-                    <td>{{ supplier.get_category_display|default:supplier.category }}</td>
-                    <td>
-                        <span class="status-badge {% if supplier.status == 'Active' %}status-active{% else %}status-inactive{% endif %}">
-                            {{ supplier.status }}
-                        </span>
-                    </td>
+                    <td>{{ supplier.country.name|default:"" }}</td>
+                    <td>{{ supplier.category.name|default:"" }}</td>
+                    <td><span class="status-badge status-{{ supplier.status.name|lower }}">{{ supplier.status.name }}</span></td>
                     <td>{{ supplier.created_by.username|default:"N/A" }}</td>
                     {% if permissions.suppliers == 2 %}
                     <td class="action-links">
@@ -96,22 +113,23 @@
     {% if page_obj.has_other_pages %}
     <div class="pagination-wrapper">
         <div class="pagination">
+            <!-- Paginación, incluyendo los parámetros de filtro -->
             {% if page_obj.has_previous %}
-                <a href="?page=1&id_supplier={{ request.GET.id_supplier }}&name={{ request.GET.name }}&country={{ request.GET.country }}&status={{ request.GET.status }}">First</a>
-                <a href="?page={{ page_obj.previous_page_number }}&id_supplier={{ request.GET.id_supplier }}&name={{ request.GET.name }}&country={{ request.GET.country }}&status={{ request.GET.status }}">Previous</a>
+                <a href="?page=1&id_supplier={{ request.GET.id_supplier }}&name={{ request.GET.name }}&country={{ request.GET.country }}&category={{ request.GET.category }}&status={{ request.GET.status }}">First</a>
+                <a href="?page={{ page_obj.previous_page_number }}&id_supplier={{ request.GET.id_supplier }}&name={{ request.GET.name }}&country={{ request.GET.country }}&category={{ request.GET.category }}&status={{ request.GET.status }}">Previous</a>
             {% endif %}
 
             {% for i in page_obj.paginator.page_range %}
                 {% if page_obj.number == i %}
                     <span class="current">{{ i }}</span>
                 {% else %}
-                    <a href="?page={{ i }}&id_supplier={{ request.GET.id_supplier }}&name={{ request.GET.name }}&country={{ request.GET.country }}&status={{ request.GET.status }}">{{ i }}</a>
+                    <a href="?page={{ i }}&id_supplier={{ request.GET.id_supplier }}&name={{ request.GET.name }}&country={{ request.GET.country }}&category={{ request.GET.category }}&status={{ request.GET.status }}">{{ i }}</a>
                 {% endif %}
             {% endfor %}
 
             {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}&id_supplier={{ request.GET.id_supplier }}&name={{ request.GET.name }}&country={{ request.GET.country }}&status={{ request.GET.status }}">Next</a>
-                <a href="?page={{ page_obj.paginator.num_pages }}&id_supplier={{ request.GET.id_supplier }}&name={{ request.GET.name }}&country={{ request.GET.country }}&status={{ request.GET.status }}">Last</a>
+                <a href="?page={{ page_obj.next_page_number }}&id_supplier={{ request.GET.id_supplier }}&name={{ request.GET.name }}&country={{ request.GET.country }}&category={{ request.GET.category }}&status={{ request.GET.status }}">Next</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}&id_supplier={{ request.GET.id_supplier }}&name={{ request.GET.name }}&country={{ request.GET.country }}&category={{ request.GET.category }}&status={{ request.GET.status }}">Last</a>
             {% endif %}
         </div>
     </div>
