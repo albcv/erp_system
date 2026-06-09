@@ -28,6 +28,9 @@
 ### Gestión de Proveedores
 <img src="img/suppliers.png" alt="Vista de gestión de proveedores">
 
+### Gestión de Clientes
+<img src="img/customers.png" alt="Vista de gestión de proveedores">
+
 ### Insertar registros de un archivo CSV
 <img src="img/bulk_upload.png" alt="Vista de gestión de proveedores">
 
