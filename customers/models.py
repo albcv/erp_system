@@ -2,9 +2,9 @@ from django.db import models
 from django.conf import settings
 from core.models import Status, Country, Currency, PaymentTerm, PaymentMethod, Category
 
-class Supplier(models.Model):
+class Customer(models.Model):
     # Campos principales
-    id_supplier = models.CharField(max_length=50, unique=True, db_index=True, verbose_name="Supplier ID")
+    id_customer = models.CharField(max_length=50, unique=True, db_index=True, verbose_name="Supplier ID")
     legal_name = models.CharField(max_length=150, blank=True, verbose_name="Legal name")
     name = models.CharField(max_length=100, db_index=True, verbose_name="Name")
     tax_id = models.CharField(max_length=30, unique=True, verbose_name="Tax ID")
@@ -35,8 +35,8 @@ class Supplier(models.Model):
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, verbose_name="Created by")
 
     class Meta:
-        verbose_name = "Supplier"
-        verbose_name_plural = "Suppliers"
+        verbose_name = "Customer"
+        verbose_name_plural = "Customers"
         ordering = ['name']
         indexes = [
             models.Index(fields=['name', 'status']),
@@ -44,5 +44,5 @@ class Supplier(models.Model):
 
     def __str__(self):
         if self.legal_name:
-            return f"{self.id_supplier} - {self.name} ({self.legal_name})"
-        return f"{self.id_supplier} - {self.name}"
+            return f"{self.id_customer} - {self.name} ({self.legal_name})"
+        return f"{self.id_customer} - {self.name}"

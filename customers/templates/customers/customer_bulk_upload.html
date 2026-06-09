@@ -1,0 +1,113 @@
+{% extends "core/base.html" %}
+
+{% block title %}Bulk Create Customers{% endblock %}
+
+{% block extra_css %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'core/css/bulk_upload.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="bulk-container">
+    <h2>Customers</h2>
+
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if not report_generated %}
+    <div class="upload-card">
+        <h3>Step 1: Upload CSV File</h3>
+        <p>The CSV file must contain a header row that matches the exact field names.</p>
+
+        <div>
+            <a href="{% url 'customers:download_template_customers' %}" class="btn-template">📥 Download Template</a>
+        </div>
+
+        <form action="" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-error" role="alert">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <div class="form-group-bulk">
+                <label for="{{ form.csv_file.id_for_label }}">{{ form.csv_file.label }}</label>
+                <div>
+                    <input type="file" name="{{ form.csv_file.html_name }}" id="{{ form.csv_file.id_for_label }}">
+                    {% if form.csv_file.help_text %}
+                    <p class="help-text">{{ form.csv_file.help_text }}</p>
+                    {% endif %}
+                    {% if form.csv_file.errors %}
+                    <div class="alert alert-error">{{ form.csv_file.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="button-group-bulk">
+                <a href="{% url 'customers:customer_list' %}" class="btn-cancel-bulk">Cancel</a>
+                <button type="submit" class="btn-submit-bulk">Upload and Process</button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    {% if report_generated %}
+    <h3>Step 2: Results Report</h3>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            Total Rows Processed
+            <span>{{ total_rows }}</span>
+        </div>
+        <div class="stat-card success">
+            Successfully Created
+            <span>{{ successful_count }}</span>
+        </div>
+        <div class="stat-card error">
+            Rows with Errors
+            <span>{{ error_count }}</span>
+        </div>
+    </div>
+
+    {% if error_records %}
+    <h4>Error Details</h4>
+    <div class="error-list">
+        {% for record in error_records %}
+        <div class="error-item">
+            <p>Row #{{ record.row }} - {{ record.data.name|default:'[Name not available]' }} (ID: {{ record.data.id_customer|default:'[N/A]' }})</p>
+            <ul>
+                {% for field, error_msg in record.errors.items %}
+                <li><strong>{{ field|capfirst }}</strong>: {{ error_msg }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if successful_records %}
+    <h4>Created Records Details</h4>
+    <div class="success-list">
+        {% for record in successful_records %}
+        <div class="success-item">
+            Row #{{ record.row }}: <strong>{{ record.data.name|default:'[No Name]' }}</strong> (ID: {{ record.data.id_customer|default:'[N/A]' }})
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="back-link">
+        <a href="{% url 'customers:customer_list' %}">Back to List</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

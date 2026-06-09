@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'core',
     'materials',
     'suppliers',
+    'customers',
     'inventory',
     'accounting',
     'purchases',

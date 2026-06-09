@@ -24,7 +24,7 @@
                 {% if permissions.customers == 1 %}🔍 View only{% else %}✏️ Read and write{% endif %}
             </div>
             <p>Manage customer information, contacts, and history.</p>
-            <a href="#" class="btn-access">Access →</a>
+            <a href="{% url 'customers:customer_list' %}" class="btn-access">Access →</a>
         </div>
         {% endif %}
 

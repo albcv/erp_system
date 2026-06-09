@@ -1,0 +1,138 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Customers{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/list.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="list-container">
+    <div class="filters-card">
+        <form method="get" action="{% url 'customers:customer_list' %}">
+            <div class="filter-grid">
+                <div class="filter-field">
+                    <label>ID Customer</label>
+                    <input type="text" name="id_customer" value="{{ request.GET.id_customer }}">
+                </div>
+                <div class="filter-field">
+                    <label>Name</label>
+                    <input type="text" name="name" value="{{ request.GET.name }}">
+                </div>
+                <div class="filter-field">
+                    <label>Country</label>
+                    <select name="country">
+                        <option value="">All</option>
+                        {% for c in countries %}
+                        <option value="{{ c.id }}" {% if request.GET.country|add:"0" == c.id %}selected{% endif %}>
+                            {{ c.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <label>Category</label>
+                    <select name="category">
+                        <option value="">All</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}" {% if request.GET.category|add:"0" == cat.id %}selected{% endif %}>
+                            {{ cat.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <label>Status</label>
+                    <select name="status">
+                        <option value="">All</option>
+                        {% for st in statuses %}
+                        <option value="{{ st.id }}" {% if request.GET.status|add:"0" == st.id %}selected{% endif %}>
+                            {{ st.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button type="submit" class="btn-filter">Filter</button>
+                <a href="{% url 'customers:customer_list' %}" class="btn-clear">Clear</a>
+                <a href="?export=csv{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="btn-export">📎 Export to CSV</a>
+                {% if permissions.customers == 2 %}
+                    <a href="{% url 'customers:customer_bulk_create' %}" class="btn-bulk">📎 Bulk Upload (CSV)</a>
+                    <a href="{% url 'customers:create_customer' %}" class="btn-create">➕ Create Customer</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <div class="record-count">
+        Showing {{ page_obj.start_index }} - {{ page_obj.end_index }} of {{ page_obj.paginator.count }} customers
+    </div>
+
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID Customer</th>
+                    <th>Name</th>
+                    <th>Country</th>
+                    <th>Category</th>
+                    <th>Status</th>
+                    <th>Created By</th>
+                    {% if permissions.customers == 2 %}<th>Actions</th>{% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for customer in page_obj %}
+                <tr>
+                    <td>{{ customer.id_customer }}</td>
+                    <td>{{ customer.name }}</td>
+                    <td>{{ customer.country.name|default:"" }}</td>
+                    <td>{{ customer.category.name|default:"" }}</td>
+                    <td><span class="status-badge status-{{ customer.status.name|lower }}">{{ customer.status.name }}</span></td>
+                    <td>{{ customer.created_by.username|default:"N/A" }}</td>
+                    {% if permissions.customers == 2 %}
+                    <td class="action-links">
+                        <a href="{% url 'customers:edit_customer' customer.pk %}" class="btn-edit">Edit</a>
+                        <form action="{% url 'customers:delete_customer' customer.pk %}" method="POST" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-delete" onclick="return confirm('Are you sure you want to delete this customer?')">Delete</button>
+                        </form>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr class="empty-row"><td colspan="7">No customers found</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="pagination-wrapper">
+        <div class="pagination">
+            <!-- Paginación, incluyendo los parámetros de filtro -->
+            {% if page_obj.has_previous %}
+                <a href="?page=1&id_customer={{ request.GET.id_customer }}&name={{ request.GET.name }}&country={{ request.GET.country }}&category={{ request.GET.category }}&status={{ request.GET.status }}">First</a>
+                <a href="?page={{ page_obj.previous_page_number }}&id_customer={{ request.GET.id_customer }}&name={{ request.GET.name }}&country={{ request.GET.country }}&category={{ request.GET.category }}&status={{ request.GET.status }}">Previous</a>
+            {% endif %}
+
+            {% for i in page_obj.paginator.page_range %}
+                {% if page_obj.number == i %}
+                    <span class="current">{{ i }}</span>
+                {% else %}
+                    <a href="?page={{ i }}&id_customer={{ request.GET.id_customer }}&name={{ request.GET.name }}&country={{ request.GET.country }}&category={{ request.GET.category }}&status={{ request.GET.status }}">{{ i }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}&id_customer={{ request.GET.id_customer }}&name={{ request.GET.name }}&country={{ request.GET.country }}&category={{ request.GET.category }}&status={{ request.GET.status }}">Next</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}&id_customer={{ request.GET.id_customer }}&name={{ request.GET.name }}&country={{ request.GET.country }}&category={{ request.GET.category }}&status={{ request.GET.status }}">Last</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

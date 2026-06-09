@@ -14,10 +14,10 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Supplier',
+            name='Customer',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('id_supplier', models.CharField(db_index=True, max_length=50, unique=True, verbose_name='Supplier ID')),
+                ('id_customer', models.CharField(db_index=True, max_length=50, unique=True, verbose_name='Supplier ID')),
                 ('legal_name', models.CharField(blank=True, max_length=150, verbose_name='Legal name')),
                 ('name', models.CharField(db_index=True, max_length=100, verbose_name='Name')),
                 ('tax_id', models.CharField(max_length=30, unique=True, verbose_name='Tax ID')),
