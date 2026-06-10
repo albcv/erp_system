@@ -3,7 +3,7 @@ from django.conf import settings
 from core.models import Country, Currency, Status
 
 class AccountNature(models.Model):
-   id_account_nature = models.CharField(max_length=50, unique=True, db_index=True, verbose_name="Account Nature ID")
+   id_account_nature = models.CharField(max_length=20, unique=True, db_index=True, verbose_name="Account Nature ID")
    name = models.CharField(verbose_name='Name', max_length=50)
    symbol = models.CharField(verbose_name="Symbol", max_length=10)
    effect_on_balance = models.TextField(verbose_name='Effect on Balance')
@@ -21,7 +21,7 @@ class AccountNature(models.Model):
    
 
 class AccountGroup(models.Model):
-   id_account_group = models.CharField(max_length=50, unique=True, db_index=True, verbose_name="Account Group ID")
+   id_account_group = models.CharField(max_length=20, unique=True, db_index=True, verbose_name="Account Group ID")
    name = models.CharField(verbose_name='Name', max_length=100)
    code_prefix = models.CharField(verbose_name="Code Prefix", max_length=10)
    description = models.TextField(verbose_name='Description', blank=True)
@@ -39,7 +39,7 @@ class AccountGroup(models.Model):
    
 
 class AccountType(models.Model):
-   id_account_type = models.CharField(max_length=50, unique=True, db_index=True, verbose_name="Account Type")
+   id_account_type = models.CharField(max_length=20, unique=True, db_index=True, verbose_name="Account Type")
    name = models.CharField(verbose_name='Name', max_length=50)
    description = models.TextField(verbose_name='Description', blank=True)
 
@@ -56,7 +56,7 @@ class AccountType(models.Model):
    
 
 class AccountAccount(models.Model):
-   id_account = models.CharField(max_length=50, unique=True, db_index=True, verbose_name="Account ID")
+   id_account = models.CharField(max_length=20, unique=True, db_index=True, verbose_name="Account ID")
    name = models.CharField(verbose_name='Name', max_length=100)
    code = models.CharField(verbose_name="Code", max_length=20)
    description = models.TextField(verbose_name='Description', blank=True)

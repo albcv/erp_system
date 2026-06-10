@@ -27,7 +27,7 @@ class MovementType(models.Model):
 
 class LocationInventary(models.Model):
 
-    id_location = models.CharField(verbose_name="Location ID", max_length=10, unique=True, db_index=True)
+    id_location = models.CharField(verbose_name="Location ID", max_length=20, unique=True, db_index=True)
     name = models.CharField(verbose_name="Name", max_length=100) 
     code = models.CharField(verbose_name="Code", max_length=20) 
     main_location = models.BooleanField(verbose_name="Main Location", default=False)
@@ -50,7 +50,7 @@ class LocationInventary(models.Model):
 
 class InventoryMovement(models.Model):
 
-    id_inventory_movement = models.CharField(verbose_name="Inventory Movement ID", max_length=10, unique=True, db_index=True)
+    id_inventory_movement = models.CharField(verbose_name="Inventory Movement ID", max_length=20, unique=True, db_index=True)
 
     id_location = models.ForeignKey(LocationInventary, on_delete=models.PROTECT, verbose_name="Location ID")
     id_material = models.ForeignKey(Material, on_delete=models.PROTECT, verbose_name="Material ID")

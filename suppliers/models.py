@@ -4,7 +4,7 @@ from core.models import Status, Country, Currency, PaymentTerm, PaymentMethod, C
 
 class Supplier(models.Model):
     # Campos principales
-    id_supplier = models.CharField(max_length=50, unique=True, db_index=True, verbose_name="Supplier ID")
+    id_supplier = models.CharField(max_length=20, unique=True, db_index=True, verbose_name="Supplier ID")
     legal_name = models.CharField(max_length=150, blank=True, verbose_name="Legal name")
     name = models.CharField(max_length=100, db_index=True, verbose_name="Name")
     tax_id = models.CharField(max_length=30, unique=True, verbose_name="Tax ID")
