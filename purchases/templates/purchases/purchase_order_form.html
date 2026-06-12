@@ -34,6 +34,22 @@
                     <label for="estimated_delivery_date">Estimated Delivery Date</label>
                     <input type="date" id="estimated_delivery_date" name="estimated_delivery_date" required>
                 </div>
+
+                <!-- Select para el estado -->
+                <div class="form-field">
+                    <label for="order_status">Order Status</label>
+                    <select id="order_status" name="order_status">
+                        {% for st in statuses %}
+                        <option value="{{ st.pk }}" 
+                            {% if purchase_order and purchase_order.order_status.pk == st.pk %}selected
+                            {% elif not purchase_order and st.name == 'Draft' %}selected
+                            {% endif %}>
+                            {{ st.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="helptext">Select the current status of the purchase order</small>
+                </div>
             </div>
 
             <input type="hidden" id="supplier_id_input" name="supplier_pk">
@@ -88,7 +104,7 @@
                         </tr>
                     </thead>
                     <tbody id="line-items-container">
-                        <!-- Dynamic rows will be added here -->
+                        <!-- Dynamic rows -->
                     </tbody>
                 </table>
             </div>
@@ -110,20 +126,21 @@
 
 {% block extra_js %}
 {% if purchase_order %}
-    <script type="application/json" id="po-data">{{ purchase_order_json|safe }}</script>
-    <script type="application/json" id="po-lines">{{ lines_json|safe }}</script>
+<script type="application/json" id="po-data">{{ purchase_order_json|safe }}</script>
+<script type="application/json" id="po-lines">{{ lines_json|safe }}</script>
 {% endif %}
 
 {{ currencies|json_script:"currencies-list" }}
 
 <script>
-    (function() {
+    (function () {
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
         const supplierSearchInput = document.getElementById('supplier_search');
         const loadSupplierBtn = document.getElementById('load-supplier-btn');
         const supplierIdHidden = document.getElementById('supplier_id_input');
         const defaultCurrencyInput = document.getElementById('default_currency_input');
         const estimatedDeliveryDate = document.getElementById('estimated_delivery_date');
+        const orderStatusSelect = document.getElementById('order_status');
         const lineItemsContainer = document.getElementById('line-items-container');
         const addItemBtn = document.getElementById('add-item-btn');
         const submitBtn = document.getElementById('submit-po-btn');
@@ -132,7 +149,6 @@
 
         const supplierFields = ['name', 'address', 'city', 'state_province', 'country', 'payment_terms', 'payment_method'];
 
-        // --- Generar opciones de monedas dinámicamente desde el backend ---
         let currencyOptionsHtml = '<option value="">--</option>';
         const currenciesElement = document.getElementById('currencies-list');
         if (currenciesElement) {
@@ -141,16 +157,13 @@
                 currencies.forEach(curr => {
                     currencyOptionsHtml += `<option value="${curr.code}">${curr.code}</option>`;
                 });
-            } catch(e) {
+            } catch (e) {
                 console.error("Error parsing currencies JSON:", e);
-                // Fallback en caso de error
                 currencyOptionsHtml = '<option value="">--</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option>';
             }
         } else {
-            // Fallback si el elemento no existe (por ejemplo, si la vista no pasó las monedas)
             currencyOptionsHtml = '<option value="">--</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option>';
         }
-        // ----------------------------------------------------------------
 
         async function fetchJSON(url, errorContext) {
             const response = await fetch(url, {
@@ -243,6 +256,13 @@
                 row.querySelector('.price').value = prefill.price || '';
                 row.querySelector('.currency-select').value = prefill.currency || '';
             }
+            // --- Por defecto, seleccionar USD en modo creación ---
+            if (!prefill && !editMode) {
+                const currencySelect = row.querySelector('.currency-select');
+                if (currencySelect && currencySelect.querySelector('option[value="USD"]')) {
+                    currencySelect.value = "USD";
+                }
+            }
             const materialIdInput = row.querySelector('.material-id');
             const removeBtn = row.querySelector('.remove-row-btn');
             materialIdInput.addEventListener('blur', () => {
@@ -262,8 +282,10 @@
         function collectFormData() {
             const supplierId = supplierIdHidden.value.trim();
             const deliveryDate = estimatedDeliveryDate.value;
+            const orderStatus = orderStatusSelect.value;
             if (!supplierId) throw new Error('Supplier ID is required');
             if (!deliveryDate) throw new Error('Estimated delivery date is required');
+            if (!orderStatus) throw new Error('Order status is required');
             const lines = [];
             const rows = lineItemsContainer.querySelectorAll('.line-item-row');
             if (rows.length === 0) throw new Error('At least one line item is required');
@@ -275,14 +297,14 @@
                 const unit = row.querySelector('.unit-select').value;
                 const currency = row.querySelector('.currency-select').value;
                 if (!materialId || !quantity || !price || !unit || !currency)
-                    throw new Error(`Line ${i+1}: All fields are required.`);
+                    throw new Error(`Line ${i + 1}: All fields are required.`);
                 lines.push({
                     id_material: materialId,
                     quantity: parseFloat(quantity),
                     price: parseFloat(price),
                     unit_material: unit,
                     currency_supplier: currency,
-                    position: i+1
+                    position: i + 1
                 });
             }
             return {
@@ -290,7 +312,8 @@
                 estimated_delivery_date: deliveryDate,
                 lines: lines,
                 edit_mode: editMode,
-                id_purchase_order: poId
+                id_purchase_order: poId,
+                order_status: parseInt(orderStatus)
             };
         }
 
@@ -325,7 +348,6 @@
             }
         }
 
-        // Cargar datos en modo edición usando json_script
         if (editMode && poId) {
             const poDataElement = document.getElementById('po-data');
             const linesDataElement = document.getElementById('po-lines');
@@ -334,10 +356,11 @@
                 const existingLines = JSON.parse(linesDataElement.textContent);
                 if (existingPo) {
                     supplierSearchInput.value = existingPo.id_supplier.id_supplier;
-                    // Cargar proveedor y luego llenar líneas
                     loadSupplier(existingPo.id_supplier.id_supplier).then(() => {
                         estimatedDeliveryDate.value = existingPo.estimated_delivery_date;
-                        // Limpiar líneas actuales y añadir las existentes
+                        if (orderStatusSelect && existingPo.order_status_id) {
+                            orderStatusSelect.value = existingPo.order_status_id;
+                        }
                         lineItemsContainer.innerHTML = '';
                         existingLines.forEach((line, idx) => {
                             addNewLineItem({
@@ -354,13 +377,11 @@
             }
         }
 
-        // Event bindings
         loadSupplierBtn.addEventListener('click', () => loadSupplier(supplierSearchInput.value.trim()));
         supplierSearchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); loadSupplierBtn.click(); } });
         addItemBtn.addEventListener('click', () => addNewLineItem());
         submitBtn.addEventListener('click', submitPurchaseOrder);
 
-        // Si no es edición, añadir una fila inicial vacía
         if (!editMode) addNewLineItem();
     })();
 </script>

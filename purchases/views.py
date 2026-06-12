@@ -143,6 +143,7 @@ def purchase_order_form(request, pk=None):
         po_data = {
             'id_purchase_order': purchase_order.id_purchase_order,
             'estimated_delivery_date': purchase_order.estimated_delivery_date.strftime('%Y-%m-%d') if purchase_order.estimated_delivery_date else None,
+            'order_status_id': purchase_order.order_status.pk,
             'id_supplier': {
                 'id_supplier': purchase_order.id_supplier.id_supplier,
                 'name': purchase_order.id_supplier.name,
@@ -176,7 +177,8 @@ def purchase_order_form(request, pk=None):
         'lines': lines,
         'purchase_order_json': purchase_order_json,
         'lines_json': lines_json,
-        'currencies': currencies_list,   
+        'currencies': currencies_list,
+        'statuses': OrderStatus.objects.all().order_by('name'),   # Para el select de estado
     }
     return render(request, 'purchases/purchase_order_form.html', context)
 
@@ -194,22 +196,30 @@ def create_purchase_order(request):
         estimated_delivery_date_str = data.get('estimated_delivery_date')
         lines_data = data.get('lines', [])
         edit_mode = data.get('edit_mode', False)
-        po_id = data.get('id_purchase_order')  # solo en modo edición
+        po_id = data.get('id_purchase_order')
+        order_status_id = data.get('order_status')   # Nuevo campo
 
         if not supplier_id_str or not estimated_delivery_date_str or not lines_data:
             return JsonResponse({'error': 'Missing required fields.'}, status=400)
 
         supplier = Supplier.objects.get(id_supplier=supplier_id_str)
-        default_status, _ = OrderStatus.objects.get_or_create(
-            name='Draft', defaults={'symbol': 'DRF', 'description': 'Draft state'}
-        )
+        
+        # Determinar el estado: si se envía, usar ese; si no, el estado por defecto (Draft)
+        if order_status_id:
+            try:
+                order_status = OrderStatus.objects.get(pk=order_status_id)
+            except OrderStatus.DoesNotExist:
+                return JsonResponse({'error': 'Invalid order status'}, status=400)
+        else:
+            order_status, _ = OrderStatus.objects.get_or_create(
+                name='Draft', defaults={'symbol': 'DRF', 'description': 'Draft state'}
+            )
 
         try:
             delivery_date = datetime.strptime(estimated_delivery_date_str, '%Y-%m-%d').date()
         except ValueError:
             return JsonResponse({'error': 'Invalid date format. Use YYYY-MM-DD.'}, status=400)
 
-        # Generar ID si es nueva orden
         if not edit_mode:
             max_id_result = PurchaseOrder.objects.aggregate(max_id=Max('id_purchase_order'))
             last_id_str = max_id_result.get('max_id')
@@ -219,19 +229,17 @@ def create_purchase_order(request):
                 id_purchase_order=next_po_id,
                 id_supplier=supplier,
                 estimated_delivery_date=delivery_date,
-                order_status=default_status,
+                order_status=order_status,
                 created_by=request.user,
             )
         else:
-            # Edición: actualizar orden existente
             purchase_order = get_object_or_404(PurchaseOrder, id_purchase_order=po_id)
             purchase_order.id_supplier = supplier
             purchase_order.estimated_delivery_date = delivery_date
+            purchase_order.order_status = order_status   # Actualizar estado
             purchase_order.save()
-            # Eliminar líneas anteriores y recrearlas (opcional: podría actualizar existentes)
             purchase_order.lines_purchase_order.all().delete()
 
-        # Procesar líneas
         for i, line_data in enumerate(lines_data, start=1):
             material_id = line_data.get('id_material')
             unit_symbol = (line_data.get('unit_material') or line_data.get('unit', '')).strip().upper()
@@ -269,7 +277,7 @@ def create_purchase_order(request):
             'success': True,
             'id_purchase_order': purchase_order.id_purchase_order,
             'message': f'Purchase Order {purchase_order.id_purchase_order} {"updated" if edit_mode else "created"} successfully',
-            'redirect_url': '/purchases/purchase_order_list/'   # ← Corregido
+            'redirect_url': '/purchases/purchase_order_list/'
         }
         return JsonResponse(response_data, status=201)
 
