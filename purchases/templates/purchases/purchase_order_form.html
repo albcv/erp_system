@@ -114,6 +114,8 @@
     <script type="application/json" id="po-lines">{{ lines_json|safe }}</script>
 {% endif %}
 
+{{ currencies|json_script:"currencies-list" }}
+
 <script>
     (function() {
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
@@ -129,6 +131,26 @@
         const poId = document.getElementById('po_id').value;
 
         const supplierFields = ['name', 'address', 'city', 'state_province', 'country', 'payment_terms', 'payment_method'];
+
+        // --- Generar opciones de monedas dinámicamente desde el backend ---
+        let currencyOptionsHtml = '<option value="">--</option>';
+        const currenciesElement = document.getElementById('currencies-list');
+        if (currenciesElement) {
+            try {
+                const currencies = JSON.parse(currenciesElement.textContent);
+                currencies.forEach(curr => {
+                    currencyOptionsHtml += `<option value="${curr.code}">${curr.code}</option>`;
+                });
+            } catch(e) {
+                console.error("Error parsing currencies JSON:", e);
+                // Fallback en caso de error
+                currencyOptionsHtml = '<option value="">--</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option>';
+            }
+        } else {
+            // Fallback si el elemento no existe (por ejemplo, si la vista no pasó las monedas)
+            currencyOptionsHtml = '<option value="">--</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option>';
+        }
+        // ----------------------------------------------------------------
 
         async function fetchJSON(url, errorContext) {
             const response = await fetch(url, {
@@ -210,7 +232,7 @@
                 <td><input type="number" class="quantity" placeholder="Qty" step="any" style="width:80px"></td>
                 <td><select class="unit-select" style="width:80px"><option value="">--</option><option value="KG">KG</option><option value="P">P</option><option value="M2">M2</option><option value="LT">LT</option></select></td>
                 <td><input type="number" class="price" placeholder="Price" step="any" style="width:100px"></td>
-                <td><select class="currency-select" style="width:70px"><option value="">--</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option></select></td>
+                <td><select class="currency-select" style="width:70px">${currencyOptionsHtml}</select></td>
                 <td><button type="button" class="remove-row-btn btn-danger">✖</button></td>
             `;
             if (prefill) {

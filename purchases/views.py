@@ -10,6 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Max
 from django.db import transaction, models
 from django.core.paginator import Paginator
+from django.db.models import Q
 from .models import PurchaseOrder, LinesPurchaseOrder, OrderStatus
 from suppliers.models import Supplier
 from materials.models import Material, Unit
@@ -30,13 +31,16 @@ def purchase_order_list(request):
     purchase_orders = PurchaseOrder.objects.select_related('id_supplier', 'order_status', 'created_by').all().order_by('id_purchase_order','-issue_date')
 
     id_po = request.GET.get('id_purchase_order')
-    supplier_id = request.GET.get('supplier_id')
+    supplier_input = request.GET.get('supplier_id') 
     status_symbol = request.GET.get('status_symbol')
 
     if id_po:
         purchase_orders = purchase_orders.filter(id_purchase_order__icontains=id_po)
-    if supplier_id:
-        purchase_orders = purchase_orders.filter(id_supplier__id_supplier__icontains=supplier_id)
+    if supplier_input:
+        purchase_orders = purchase_orders.filter(
+            Q(id_supplier__id_supplier__icontains=supplier_input) |
+            Q(id_supplier__name__icontains=supplier_input)
+        )
     if status_symbol:
         purchase_orders = purchase_orders.filter(order_status__symbol__iexact=status_symbol)
 
@@ -131,7 +135,6 @@ def purchase_order_form(request, pk=None):
 
     if pk:
         purchase_order = get_object_or_404(PurchaseOrder, pk=pk)
-        # Usar el relacionador correcto: 'lines_purchase_order'
         lines = purchase_order.lines_purchase_order.all().order_by('position')
         if max_permission < 2:
             return redirect('purchases:purchase_order_list')
@@ -164,12 +167,16 @@ def purchase_order_form(request, pk=None):
         purchase_order_json = json.dumps(po_data, cls=DjangoJSONEncoder)
         lines_json = json.dumps(lines_data, cls=DjangoJSONEncoder)
 
+    currencies_qs = Currency.objects.all().order_by('code')
+    currencies_list = [{'code': c.code, 'name': c.name} for c in currencies_qs]
+
     context = {
         'title': 'Edit Purchase Order' if purchase_order else 'Create New Purchase Order',
         'purchase_order': purchase_order,
         'lines': lines,
         'purchase_order_json': purchase_order_json,
         'lines_json': lines_json,
+        'currencies': currencies_list,   
     }
     return render(request, 'purchases/purchase_order_form.html', context)
 
