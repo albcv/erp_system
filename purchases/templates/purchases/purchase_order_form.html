@@ -1,0 +1,345 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/form.css' %}">
+<link rel="stylesheet" href="{% static 'purchases/css/purchase_order_create.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-header">
+        <h1>{{ title }}</h1>
+        <p>Fill in the supplier and line item details</p>
+    </div>
+
+    <div class="form-card">
+        <form id="po-form" method="post" onsubmit="return false">
+            {% csrf_token %}
+
+            <h3>Supplier Selection</h3>
+            <div class="form-fields-column">
+                <div class="form-field">
+                    <label for="supplier_search">Supplier ID</label>
+                    <div class="input-with-button">
+                        <input type="text" id="supplier_search" placeholder="Enter Supplier ID" class="flex-grow">
+                        <button type="button" id="load-supplier-btn" class="btn-secondary">Load Supplier</button>
+                    </div>
+                    <small class="helptext">Enter the supplier ID and click Load</small>
+                </div>
+
+                <div class="form-field">
+                    <label for="estimated_delivery_date">Estimated Delivery Date</label>
+                    <input type="date" id="estimated_delivery_date" name="estimated_delivery_date" required>
+                </div>
+            </div>
+
+            <input type="hidden" id="supplier_id_input" name="supplier_pk">
+            <input type="hidden" id="default_currency_input" name="default_currency">
+            <input type="hidden" id="edit_mode" value="{% if purchase_order %}true{% else %}false{% endif %}">
+            <input type="hidden" id="po_id" value="{{ purchase_order.id_purchase_order|default:'' }}">
+
+            <h3>Supplier Master Data</h3>
+            <div id="supplier_data_fields" class="supplier-data-grid">
+                <div class="data-field">
+                    <label>Name</label>
+                    <input type="text" id="name_display" readonly class="readonly-field">
+                </div>
+                <div class="data-field">
+                    <label>Address</label>
+                    <input type="text" id="address_display" readonly class="readonly-field">
+                </div>
+                <div class="data-field">
+                    <label>City</label>
+                    <input type="text" id="city_display" readonly class="readonly-field">
+                </div>
+                <div class="data-field">
+                    <label>State/Province</label>
+                    <input type="text" id="state_province_display" readonly class="readonly-field">
+                </div>
+                <div class="data-field">
+                    <label>Country</label>
+                    <input type="text" id="country_display" readonly class="readonly-field">
+                </div>
+                <div class="data-field">
+                    <label>Payment Terms</label>
+                    <input type="text" id="payment_terms_display" readonly class="readonly-field">
+                </div>
+                <div class="data-field">
+                    <label>Payment Method</label>
+                    <input type="text" id="payment_method_display" readonly class="readonly-field">
+                </div>
+            </div>
+
+            <h3>Line Items</h3>
+            <div class="table-wrapper">
+                <table class="data-table" id="line-items-table">
+                    <thead>
+                        <tr>
+                            <th>ID Material</th>
+                            <th>Description</th>
+                            <th>Quantity</th>
+                            <th>Unit</th>
+                            <th>Price</th>
+                            <th>Currency</th>
+                            <th style="width: 50px"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="line-items-container">
+                        <!-- Dynamic rows will be added here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="button-group">
+                <button type="button" id="add-item-btn" class="btn-secondary">+ Add Item</button>
+            </div>
+
+            <div class="form-actions">
+                <a href="{% url 'purchases:purchase_order_list' %}" class="btn-cancel">Cancel</a>
+                <button type="submit" id="submit-po-btn" class="btn-submit">
+                    {% if purchase_order %}Update{% else %}Create{% endif %} Purchase Order
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if purchase_order %}
+    <script type="application/json" id="po-data">{{ purchase_order_json|safe }}</script>
+    <script type="application/json" id="po-lines">{{ lines_json|safe }}</script>
+{% endif %}
+
+<script>
+    (function() {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const supplierSearchInput = document.getElementById('supplier_search');
+        const loadSupplierBtn = document.getElementById('load-supplier-btn');
+        const supplierIdHidden = document.getElementById('supplier_id_input');
+        const defaultCurrencyInput = document.getElementById('default_currency_input');
+        const estimatedDeliveryDate = document.getElementById('estimated_delivery_date');
+        const lineItemsContainer = document.getElementById('line-items-container');
+        const addItemBtn = document.getElementById('add-item-btn');
+        const submitBtn = document.getElementById('submit-po-btn');
+        const editMode = document.getElementById('edit_mode').value === 'true';
+        const poId = document.getElementById('po_id').value;
+
+        const supplierFields = ['name', 'address', 'city', 'state_province', 'country', 'payment_terms', 'payment_method'];
+
+        async function fetchJSON(url, errorContext) {
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken }
+            });
+            if (!response.ok) {
+                if (response.status === 404) throw new Error(`${errorContext} not found`);
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        }
+
+        function updateAllRowCurrencies(currencySymbol) {
+            document.querySelectorAll('.line-item-row .currency-select').forEach(select => {
+                if (select && currencySymbol) select.value = currencySymbol;
+            });
+        }
+
+        function fillSupplierData(data, supplierId) {
+            supplierIdHidden.value = supplierId || '';
+            for (let field of supplierFields) {
+                const el = document.getElementById(`${field}_display`);
+                if (el) el.value = data[field] || '';
+            }
+            const currency = data.currency || 'USD';
+            defaultCurrencyInput.value = currency;
+            updateAllRowCurrencies(currency);
+        }
+
+        function clearSupplierData() {
+            supplierIdHidden.value = '';
+            for (let field of supplierFields) {
+                const el = document.getElementById(`${field}_display`);
+                if (el) el.value = '';
+            }
+            defaultCurrencyInput.value = '';
+        }
+
+        async function loadSupplier(supplierId) {
+            if (!supplierId) { alert('Please enter a Supplier ID'); clearSupplierData(); return; }
+            try {
+                const url = `/purchases/api/supplier/details/${encodeURIComponent(supplierId)}/`;
+                const data = await fetchJSON(url, 'Supplier');
+                fillSupplierData(data, supplierId);
+            } catch (error) {
+                alert(`Error loading supplier: ${error.message}`);
+                clearSupplierData();
+            }
+        }
+
+        async function loadMaterial(materialId, rowElement) {
+            if (!materialId) return;
+            const descInput = rowElement.querySelector('.material-description');
+            const unitSelect = rowElement.querySelector('.unit-select');
+            const currencySelect = rowElement.querySelector('.currency-select');
+            try {
+                const url = `/purchases/api/material/details/${encodeURIComponent(materialId)}/`;
+                const data = await fetchJSON(url, 'Material');
+                if (descInput) descInput.value = data.description || '';
+                if (unitSelect && data.unit) unitSelect.value = data.unit;
+                if (currencySelect && defaultCurrencyInput.value && !currencySelect.value) {
+                    currencySelect.value = defaultCurrencyInput.value;
+                }
+            } catch (error) {
+                alert(`Error loading material: ${error.message}`);
+                if (descInput) descInput.value = '';
+                if (unitSelect) unitSelect.value = '';
+            }
+        }
+
+        function createLineItemRow(position, prefill = null) {
+            const row = document.createElement('tr');
+            row.className = 'line-item-row';
+            row.dataset.position = position;
+            row.innerHTML = `
+                <td><input type="text" class="material-id" placeholder="Material ID" style="width:100px"></td>
+                <td><input type="text" class="material-description" readonly placeholder="Description" style="width:150px"></td>
+                <td><input type="number" class="quantity" placeholder="Qty" step="any" style="width:80px"></td>
+                <td><select class="unit-select" style="width:80px"><option value="">--</option><option value="KG">KG</option><option value="P">P</option><option value="M2">M2</option><option value="LT">LT</option></select></td>
+                <td><input type="number" class="price" placeholder="Price" step="any" style="width:100px"></td>
+                <td><select class="currency-select" style="width:70px"><option value="">--</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option></select></td>
+                <td><button type="button" class="remove-row-btn btn-danger">✖</button></td>
+            `;
+            if (prefill) {
+                row.querySelector('.material-id').value = prefill.id_material || '';
+                row.querySelector('.material-description').value = prefill.description || '';
+                row.querySelector('.quantity').value = prefill.quantity || '';
+                row.querySelector('.unit-select').value = prefill.unit || '';
+                row.querySelector('.price').value = prefill.price || '';
+                row.querySelector('.currency-select').value = prefill.currency || '';
+            }
+            const materialIdInput = row.querySelector('.material-id');
+            const removeBtn = row.querySelector('.remove-row-btn');
+            materialIdInput.addEventListener('blur', () => {
+                const val = materialIdInput.value.trim();
+                if (val) loadMaterial(val, row);
+            });
+            removeBtn.addEventListener('click', () => row.remove());
+            return row;
+        }
+
+        function addNewLineItem(prefill = null) {
+            const currentRows = lineItemsContainer.querySelectorAll('.line-item-row').length;
+            const newRow = createLineItemRow(currentRows + 1, prefill);
+            lineItemsContainer.appendChild(newRow);
+        }
+
+        function collectFormData() {
+            const supplierId = supplierIdHidden.value.trim();
+            const deliveryDate = estimatedDeliveryDate.value;
+            if (!supplierId) throw new Error('Supplier ID is required');
+            if (!deliveryDate) throw new Error('Estimated delivery date is required');
+            const lines = [];
+            const rows = lineItemsContainer.querySelectorAll('.line-item-row');
+            if (rows.length === 0) throw new Error('At least one line item is required');
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const materialId = row.querySelector('.material-id').value.trim();
+                const quantity = row.querySelector('.quantity').value.trim();
+                const price = row.querySelector('.price').value.trim();
+                const unit = row.querySelector('.unit-select').value;
+                const currency = row.querySelector('.currency-select').value;
+                if (!materialId || !quantity || !price || !unit || !currency)
+                    throw new Error(`Line ${i+1}: All fields are required.`);
+                lines.push({
+                    id_material: materialId,
+                    quantity: parseFloat(quantity),
+                    price: parseFloat(price),
+                    unit_material: unit,
+                    currency_supplier: currency,
+                    position: i+1
+                });
+            }
+            return {
+                id_supplier: supplierId,
+                estimated_delivery_date: deliveryDate,
+                lines: lines,
+                edit_mode: editMode,
+                id_purchase_order: poId
+            };
+        }
+
+        async function submitPurchaseOrder() {
+            let payload;
+            try {
+                payload = collectFormData();
+            } catch (err) {
+                alert(err.message);
+                return;
+            }
+            submitBtn.disabled = true;
+            submitBtn.textContent = editMode ? 'Updating...' : 'Creating...';
+            try {
+                const response = await fetch('/purchases/create_order/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Server error');
+                if (result.success) {
+                    alert(result.message);
+                    window.location.href = result.redirect_url || '/purchases/purchase_order_list/';
+                } else {
+                    throw new Error(result.error || 'Unknown error');
+                }
+            } catch (error) {
+                alert(`Failed to ${editMode ? 'update' : 'create'} order: ${error.message}`);
+                submitBtn.disabled = false;
+                submitBtn.textContent = editMode ? 'Update Purchase Order' : 'Create Purchase Order';
+            }
+        }
+
+        // Cargar datos en modo edición usando json_script
+        if (editMode && poId) {
+            const poDataElement = document.getElementById('po-data');
+            const linesDataElement = document.getElementById('po-lines');
+            if (poDataElement && linesDataElement) {
+                const existingPo = JSON.parse(poDataElement.textContent);
+                const existingLines = JSON.parse(linesDataElement.textContent);
+                if (existingPo) {
+                    supplierSearchInput.value = existingPo.id_supplier.id_supplier;
+                    // Cargar proveedor y luego llenar líneas
+                    loadSupplier(existingPo.id_supplier.id_supplier).then(() => {
+                        estimatedDeliveryDate.value = existingPo.estimated_delivery_date;
+                        // Limpiar líneas actuales y añadir las existentes
+                        lineItemsContainer.innerHTML = '';
+                        existingLines.forEach((line, idx) => {
+                            addNewLineItem({
+                                id_material: line.id_material.id_material,
+                                description: line.id_material.description,
+                                quantity: line.quantity,
+                                unit: line.unit_material.symbol,
+                                price: line.price,
+                                currency: line.currency_supplier.code
+                            });
+                        });
+                    });
+                }
+            }
+        }
+
+        // Event bindings
+        loadSupplierBtn.addEventListener('click', () => loadSupplier(supplierSearchInput.value.trim()));
+        supplierSearchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); loadSupplierBtn.click(); } });
+        addItemBtn.addEventListener('click', () => addNewLineItem());
+        submitBtn.addEventListener('click', submitPurchaseOrder);
+
+        // Si no es edición, añadir una fila inicial vacía
+        if (!editMode) addNewLineItem();
+    })();
+</script>
+{% endblock %}

@@ -36,6 +36,11 @@
 
 <img src="img/bulk_upload_2.png" alt="Vista de resultados de la subida del archivo CSV">
 
+
+### Gestión de Compras
+<img src="img/purchase_orders.png" alt="Vista de gestión de compras">
+<img src="img/create_purchase_order.png" alt="Formulario para crear una orden de compra">
+
 ### Panel de administración
 <img src="img/panel_admin.png" alt="Gestión de usuarios">
 

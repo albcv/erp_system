@@ -46,7 +46,7 @@ class PurchaseOrder(models.Model):
 class LinesPurchaseOrder(models.Model):
 
     id_purchase_order_line = models.CharField(verbose_name="ID Purchase Order Line", max_length=20, unique=True, db_index=True)
-    id_purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.PROTECT, verbose_name="Purchase Order")
+    id_purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, verbose_name="Purchase Order", related_name='lines_purchase_order')
     id_material = models.ForeignKey(Material, on_delete=models.PROTECT, verbose_name="Material ID")
     position = models.IntegerField(default=1, verbose_name='Position')
     quantity = models.IntegerField(default=0, verbose_name="Quantity") 

@@ -1,0 +1,118 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Purchase Orders{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/list.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="list-container">
+    <div class="filters-card">
+        <form method="get" action="{% url 'purchases:purchase_order_list' %}">
+            <div class="filter-grid">
+                <div class="filter-field">
+                    <label>ID Purchase Order</label>
+                    <input type="text" name="id_purchase_order" value="{{ request.GET.id_purchase_order }}">
+                </div>
+                <div class="filter-field">
+                    <label>Supplier</label>
+                    <input type="text" name="supplier_id" value="{{ request.GET.supplier_id }}" placeholder="Supplier ID or name">
+                </div>
+                <div class="filter-field">
+                    <label>Status</label>
+                    <select name="status_symbol">
+                        <option value="">All</option>
+                        {% for st in statuses %}
+                        <option value="{{ st.symbol }}" {% if request.GET.status_symbol == st.symbol %}selected{% endif %}>
+                            {{ st.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button type="submit" class="btn-filter">Filter</button>
+                <a href="{% url 'purchases:purchase_order_list' %}" class="btn-clear">Clear</a>
+                <a href="?export=csv{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="btn-export">📎 Export to CSV</a>
+                {% if permissions.purchases == 2 %}
+                    <a href="{% url 'purchases:purchase_order_form' %}" class="btn-create">➕ Create Purchase Order</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <div class="record-count">
+        Showing {{ page_obj.start_index }} - {{ page_obj.end_index }} of {{ page_obj.paginator.count }} purchase orders
+    </div>
+
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID Purchase Order</th>
+                    <th>Supplier</th>
+                    <th>Issue Date</th>
+                    <th>Est. Delivery Date</th>
+                    <th>Status</th>
+                    <th>Created By</th>
+                    {% if permissions.purchases == 2 %}<th>Actions</th>{% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for po in page_obj %}
+                <tr>
+                    <td>{{ po.id_purchase_order }}</td>
+                    <td>{{ po.id_supplier.name }} ({{ po.id_supplier.id_supplier }})</td>
+                    <td>{{ po.issue_date|date:"Y-m-d H:i" }}</td>
+                    <td>{{ po.estimated_delivery_date|date:"Y-m-d"|default:"-" }}</td>
+                    <td>
+                        <span class="status-badge status-{{ po.order_status.name|lower }}">
+                            {{ po.order_status.name }}
+                        </span>
+                    </td>
+                    <td>{{ po.created_by.username|default:"N/A" }}</td>
+                    {% if permissions.purchases == 2 %}
+                    <td class="action-links">
+                        <a href="{% url 'purchases:edit_purchase_order' po.pk %}" class="btn-edit">Edit</a>
+                        <form action="{% url 'purchases:delete_purchase_order' po.pk %}" method="POST" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-delete" onclick="return confirm('Are you sure you want to delete this purchase order?')">Delete</button>
+                        </form>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr class="empty-row"><td colspan="7">No purchase orders found</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="pagination-wrapper">
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+                <a href="?page=1&id_purchase_order={{ request.GET.id_purchase_order }}&supplier_id={{ request.GET.supplier_id }}&status_symbol={{ request.GET.status_symbol }}">First</a>
+                <a href="?page={{ page_obj.previous_page_number }}&id_purchase_order={{ request.GET.id_purchase_order }}&supplier_id={{ request.GET.supplier_id }}&status_symbol={{ request.GET.status_symbol }}">Previous</a>
+            {% endif %}
+
+            {% for i in page_obj.paginator.page_range %}
+                {% if page_obj.number == i %}
+                    <span class="current">{{ i }}</span>
+                {% else %}
+                    <a href="?page={{ i }}&id_purchase_order={{ request.GET.id_purchase_order }}&supplier_id={{ request.GET.supplier_id }}&status_symbol={{ request.GET.status_symbol }}">{{ i }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}&id_purchase_order={{ request.GET.id_purchase_order }}&supplier_id={{ request.GET.supplier_id }}&status_symbol={{ request.GET.status_symbol }}">Next</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}&id_purchase_order={{ request.GET.id_purchase_order }}&supplier_id={{ request.GET.supplier_id }}&status_symbol={{ request.GET.status_symbol }}">Last</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
