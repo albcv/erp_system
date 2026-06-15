@@ -16,14 +16,7 @@
     <a href="{% url 'dashboard' %}" class="navbar-brand">🏢 ERP System</a>
     <div class="navbar-user">
         <span class="welcome-text">Welcome, {{ user.first_name|default:user.username }}</span>
-        
-        {# Mostrar botón de asociar solo si el usuario NO tiene cuenta de Google vinculada #}
-        {% if not user.socialaccount_set.all.0.provider == 'google' %}
-            <a href="{% provider_login_url 'google' process='connect' %}" class="btn-google-link">🌐 Asociar cuenta Google</a>
-        {% else %}
-            <span class="google-linked">✅ Cuenta Google vinculada</span>
-        {% endif %}
-        
+        <a href="{% provider_login_url 'google' process='connect' %}" class="btn-google-link">🌐 Asociar cuenta Google</a>
         <a href="{% url 'logout' %}" class="btn-logout">🚪 Logout</a>
     </div>
 </nav>
