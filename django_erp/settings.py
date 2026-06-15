@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',                     # Obligatorio para django-allauth
     'users',
     'core',
     'materials',
@@ -36,13 +37,53 @@ INSTALLED_APPS = [
     'inventory',
     'accounting',
     'purchases',
+    # django-allauth
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
 ]
 
 # Autenticación personalizada
 AUTH_USER_MODEL = "users.User"
-LOGIN_URL = "/users/login"
-LOGIN_REDIRECT_URL = "/users/dashboard"
-LOGOUT_REDIRECT_URL = "/users/login"
+LOGIN_URL = "/login/"                     
+LOGIN_REDIRECT_URL = "/dashboard/"       
+LOGOUT_REDIRECT_URL = "/login/" 
+
+# Backends de autenticación (modelo por defecto + allauth)
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+# django-allauth necesita un ID de sitio
+SITE_ID = 1
+
+# Configuración adicional de allauth 
+ACCOUNT_EMAIL_VERIFICATION = 'optional'
+ACCOUNT_LOGIN_METHODS = {'email'}
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']    
+SOCIALACCOUNT_LOGIN_ON_GET = True
+
+# Configuración del proveedor de Google 
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': ['profile', 'email'],
+        'AUTH_PARAMS': {'access_type': 'online'},
+        'OAUTH_PKCE_ENABLED': True,
+        'APPS': [
+            {
+                'client_id': os.environ.get('GOOGLE_CLIENT_ID'),
+                'secret': os.environ.get('GOOGLE_CLIENT_SECRET'),
+                'key': '',
+                'settings': {
+                    'scope': ['profile', 'email'],
+                    'auth_params': {'access_type': 'online'},
+                }
+            },
+        ],
+    }
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -53,6 +94,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'allauth.account.middleware.AccountMiddleware',   
 ]
 
 ROOT_URLCONF = 'django_erp.urls'
@@ -64,7 +106,7 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
-                'django.template.context_processors.request',
+                'django.template.context_processors.request',  # Necesario para allauth
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.get_permissions',
@@ -102,8 +144,5 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-
 if not DEBUG:
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
-

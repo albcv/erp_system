@@ -114,3 +114,66 @@ footer {
     font-size: 0.75rem;
     color: #aaa;
 }
+
+/* Separador y botón de Google */
+.separator {
+    text-align: center;
+    margin: 20px 0 15px;
+    color: #aaa;
+    font-size: 0.85rem;
+    position: relative;
+}
+
+.separator::before,
+.separator::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 40%;
+    height: 1px;
+    background: #e0e0e0;
+}
+
+.separator::before {
+    left: 0;
+}
+
+.separator::after {
+    right: 0;
+}
+
+.btn-google {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    background: white;
+    border: 1.5px solid #ddd;
+    border-radius: 12px;
+    padding: 10px 15px;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #444;
+    text-decoration: none;
+    transition: background 0.2s, border-color 0.2s;
+    margin-top: 10px;
+}
+
+.btn-google:hover {
+    background: #f8f9fa;
+    border-color: #bbb;
+}
+
+.google-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    background: #4285f4;
+    color: white;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 14px;
+}

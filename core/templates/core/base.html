@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}ERP System{% endblock %}</title>
     {% load static %}
+    {% load socialaccount %}
     <link rel="stylesheet" href="{% static 'core/css/base.css' %}">
     {% block extra_css %}{% endblock %}
 </head>
@@ -15,6 +16,7 @@
     <a href="{% url 'dashboard' %}" class="navbar-brand">🏢 ERP System</a>
     <div class="navbar-user">
         <span class="welcome-text">Welcome, {{ user.first_name|default:user.username }}</span>
+        <a href="{% provider_login_url 'google' process='connect' %}" class="btn-google-link">🌐 Asociar cuenta Google</a>
         <a href="{% url 'logout' %}" class="btn-logout">🚪 Logout</a>
     </div>
 </nav>

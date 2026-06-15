@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ERP Login</title>
     {% load static %}
+    {% load socialaccount %}
     <link rel="stylesheet" href="{% static 'users/css/login.css' %}">
 </head>
 <body>
@@ -42,6 +43,14 @@
 
             <button type="submit">Login</button>
         </form>
+
+        <div class="google-login">
+            <div class="separator">or</div>
+            <a href="{% provider_login_url 'google' %}" class="btn-google">
+                <span class="google-icon">G</span> Continue with Google
+            </a>
+        </div>
+
         <footer>
             &copy; {% now "Y" %} ERP System - Secure Access
         </footer>
