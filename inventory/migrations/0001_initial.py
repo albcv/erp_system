@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='LocationInventary',
+            name='LocationInventory',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('id_location', models.CharField(db_index=True, max_length=10, unique=True, verbose_name='Location ID')),
@@ -61,7 +61,7 @@ class Migration(migrations.Migration):
                 ('created_by', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL, verbose_name='Created by')),
                 ('id_material', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='materials.material', verbose_name='Material ID')),
                 ('unit_type', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='materials.unit', verbose_name='Unit Type')),
-                ('id_location', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='inventory.locationinventary', verbose_name='Location ID')),
+                ('id_location', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='inventory.locationInventory', verbose_name='Location ID')),
                 ('movement_type', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='inventory.movementtype', verbose_name='Movement ID')),
             ],
             options={

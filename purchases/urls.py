@@ -11,4 +11,6 @@ urlpatterns = [
     path('delete/<int:pk>/', views.delete_purchase_order, name='delete_purchase_order'),
     path('api/supplier/details/<str:supplier_id>/', views.get_supplier_details, name='api_supplier_details'),
     path('api/material/details/<str:material_id>/', views.get_material_details, name='api_material_details'),
+    path('goods-receipt/<int:po_pk>/', views.goods_receipt_form, name='goods_receipt_form'),
+    path('post_goods_receipt/', views.post_goods_receipt, name='post_goods_receipt'),
 ]

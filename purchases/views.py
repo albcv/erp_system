@@ -7,7 +7,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
-from django.db.models import Max
+from django.db.models import Max, F, Sum
 from django.db import transaction, models
 from django.core.paginator import Paginator
 from django.db.models import Q
@@ -16,6 +16,8 @@ from suppliers.models import Supplier
 from materials.models import Material, Unit
 from core.models import Currency
 from users.models import UserRole
+from inventory.models import LocationInventory, InventoryMovement, MovementType
+from .models import GoodsReceipt, LinesGoodsReceipt, GoodsReceiptStatus
 
 # ------------------------------------------------------------
 # Listado de órdenes de compra
@@ -28,10 +30,10 @@ def purchase_order_list(request):
     if max_permission == 0:
         return redirect('dashboard')
 
-    purchase_orders = PurchaseOrder.objects.select_related('id_supplier', 'order_status', 'created_by').all().order_by('id_purchase_order','-issue_date')
+    purchase_orders = PurchaseOrder.objects.select_related('id_supplier', 'order_status', 'created_by').all().order_by('id_purchase_order', '-issue_date')
 
     id_po = request.GET.get('id_purchase_order')
-    supplier_input = request.GET.get('supplier_id') 
+    supplier_input = request.GET.get('supplier_id')
     status_symbol = request.GET.get('status_symbol')
 
     if id_po:
@@ -178,7 +180,7 @@ def purchase_order_form(request, pk=None):
         'purchase_order_json': purchase_order_json,
         'lines_json': lines_json,
         'currencies': currencies_list,
-        'statuses': OrderStatus.objects.all().order_by('name'),   # Para el select de estado
+        'statuses': OrderStatus.objects.all().order_by('name'),
     }
     return render(request, 'purchases/purchase_order_form.html', context)
 
@@ -197,14 +199,13 @@ def create_purchase_order(request):
         lines_data = data.get('lines', [])
         edit_mode = data.get('edit_mode', False)
         po_id = data.get('id_purchase_order')
-        order_status_id = data.get('order_status')   # Nuevo campo
+        order_status_id = data.get('order_status')
 
         if not supplier_id_str or not estimated_delivery_date_str or not lines_data:
             return JsonResponse({'error': 'Missing required fields.'}, status=400)
 
         supplier = Supplier.objects.get(id_supplier=supplier_id_str)
-        
-        # Determinar el estado: si se envía, usar ese; si no, el estado por defecto (Draft)
+
         if order_status_id:
             try:
                 order_status = OrderStatus.objects.get(pk=order_status_id)
@@ -236,7 +237,7 @@ def create_purchase_order(request):
             purchase_order = get_object_or_404(PurchaseOrder, id_purchase_order=po_id)
             purchase_order.id_supplier = supplier
             purchase_order.estimated_delivery_date = delivery_date
-            purchase_order.order_status = order_status   # Actualizar estado
+            purchase_order.order_status = order_status
             purchase_order.save()
             purchase_order.lines_purchase_order.all().delete()
 
@@ -300,3 +301,167 @@ def delete_purchase_order(request, pk):
         purchase_order.delete()
         return redirect('purchases:purchase_order_list')
     return redirect('purchases:purchase_order_list')
+
+# ------------------------------------------------------------
+# Formulario de recepción de mercancías
+# ------------------------------------------------------------
+@login_required
+def goods_receipt_form(request, po_pk=None):
+    max_permission = UserRole.objects.filter(user_id=request.user).aggregate(
+        max_perm=models.Max('role__purchases')
+    )['max_perm'] or 0
+    if max_permission == 0:
+        return redirect('dashboard')
+    if max_permission == 1:
+        return redirect('purchases:purchase_order_list')
+
+    purchase_order = get_object_or_404(PurchaseOrder, pk=po_pk)
+
+    # Filtrar líneas con cantidad pendiente por recibir
+    order_lines = LinesPurchaseOrder.objects.filter(
+        id_purchase_order=purchase_order
+    ).exclude(quantity__lte=F('receive_quantity')).order_by('position')
+
+    if not order_lines.exists():
+        return redirect('purchases:purchase_order_list')
+
+    for line in order_lines:
+        line.pending_quantity = line.quantity - line.receive_quantity
+
+    locations = LocationInventory.objects.filter(status__is_active=True).order_by('code')
+
+    context = {
+        'purchase_order': purchase_order,
+        'order_lines': order_lines,
+        'locations': locations,
+    }
+    return render(request, 'purchases/goods_receipt_form.html', context)
+
+# ------------------------------------------------------------
+# Procesar recepción de mercancías (vía AJAX POST)
+# ------------------------------------------------------------
+@csrf_exempt
+@require_POST
+@transaction.atomic
+@login_required
+def post_goods_receipt(request):
+    try:
+        data = json.loads(request.body)
+
+        po_pk = data.get('po_pk')
+        receipt_date = data.get('receipt_date')
+        lines_data = data.get('lines', [])
+
+        if not lines_data:
+            return JsonResponse({'error': 'Must receive at least 1 quantity.'}, status=400)
+
+        purchase_order = get_object_or_404(PurchaseOrder, pk=po_pk)
+
+        # Asegurar que existe un MovementType con símbolo 'PUR' (o el que uses)
+        movement_type_pur, _ = MovementType.objects.get_or_create(
+            symbol='PUR',
+            defaults={'name': 'Purchase Receipt', 'created_by': request.user}
+        )
+
+        # Generar ID de recepción usando el autoincrement id (más seguro)
+        last_gr = GoodsReceipt.objects.order_by('-id').first()
+        next_gr_number = (last_gr.id + 1) if last_gr else 1
+        next_gr_id = str(next_gr_number).zfill(10)
+
+        # Obtener estado "COMPLETED" (crearlo si no existe)
+        gr_status_completed, _ = GoodsReceiptStatus.objects.get_or_create(
+            symbol="COMPLETED",
+            defaults={'name': 'Completed', 'created_by': request.user}
+        )
+
+        # Crear GoodsReceipt
+        goods_receipt = GoodsReceipt.objects.create(
+            id_goods_receipt=next_gr_id,
+            id_purchase_order=purchase_order,
+            receipt_date=receipt_date,
+            status=gr_status_completed,
+            created_by=request.user,
+        )
+
+        total_ordered_qty = purchase_order.lines_purchase_order.aggregate(total=Sum('quantity'))['total'] or 0
+        total_previously_received = purchase_order.lines_purchase_order.aggregate(total=Sum('receive_quantity'))['total'] or 0
+        total_received_in_this_gr = 0
+
+        for i, line_data in enumerate(lines_data, start=1):
+            line_pk = line_data['line_pk']
+            received_qty = int(line_data['received_quantity'])
+            location_pk = line_data['location_pk']
+
+            po_line = get_object_or_404(LinesPurchaseOrder, pk=line_pk)
+            location = get_object_or_404(LocationInventory, pk=location_pk)
+
+            if received_qty <= 0:
+                continue
+
+            available_to_receive = po_line.quantity - po_line.receive_quantity
+            if received_qty > available_to_receive:
+                raise ValueError(f"Over reception in line {po_line.position}. Ordered: {po_line.quantity}, Already received: {po_line.receive_quantity}, Trying to receive: {received_qty}")
+
+            # Crear movimiento de inventario
+            inventory_movement = InventoryMovement.objects.create(
+                id_inventory_movement=f"GR-{next_gr_id}-{i}",
+                id_location=location,
+                id_material=po_line.id_material,
+                quantity=received_qty,
+                unit_type=po_line.unit_material,
+                movement_type=movement_type_pur,
+                price=po_line.price,
+                currency=po_line.currency_supplier,
+                created_by=request.user,
+            )
+
+            line_gr_id = f"{next_gr_id}-{str(i).zfill(3)}"
+            LinesGoodsReceipt.objects.create(
+                id_goods_receipt_line=line_gr_id,
+                id_goods_receipt=goods_receipt,
+                id_purchase_order_line=po_line,
+                id_material=po_line.id_material,
+                receive_quantity=received_qty,                
+                unit_material=po_line.unit_material,
+                id_location=location,
+                inventory_movement_ref=inventory_movement.id_inventory_movement,  
+                created_by=request.user,
+            )
+
+            po_line.receive_quantity += received_qty
+            po_line.save()
+
+            total_received_in_this_gr += received_qty
+
+        total_final_received = total_previously_received + total_received_in_this_gr
+
+        # Actualizar estado de la orden de compra
+        status_completed, _ = OrderStatus.objects.get_or_create(
+            symbol="RECEIVED",
+            defaults={'name': 'Received', 'created_by': request.user}
+        )
+        status_partially_received, _ = OrderStatus.objects.get_or_create(
+            symbol="PARTIAL_RECEIVED",
+            defaults={'name': 'Partially Received', 'created_by': request.user}
+        )
+
+        if total_final_received >= total_ordered_qty:
+            purchase_order.order_status = status_completed
+        elif total_final_received > 0:
+            purchase_order.order_status = status_partially_received
+        purchase_order.save()
+
+        response_data = {
+            'success': True,
+            'id_goods_receipt': next_gr_id,
+            'redirect_url': f'/purchases/edit/{po_pk}/',
+        }
+        return JsonResponse(response_data, status=200)
+
+    except ValueError as e:
+        return JsonResponse({'error': str(e)}, status=400)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON format in request body.'}, status=400)
+    except Exception as e:
+        print(f"CRITICAL ERROR: {e}")
+        return JsonResponse({'error': f'An unexpected server error occurred: {str(e)}'}, status=500)

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import MovementType, LocationInventary, InventoryMovement
+from .models import MovementType, LocationInventory, InventoryMovement
 
 # Register your models here.
 
@@ -7,8 +7,8 @@ from .models import MovementType, LocationInventary, InventoryMovement
 class MovementTypeAdmin(admin.ModelAdmin):
     list_display = ('name', 'symbol')
 
-@admin.register(LocationInventary)
-class LocationInventaryAdmin(admin.ModelAdmin):
+@admin.register(LocationInventory)
+class LocationInventoryAdmin(admin.ModelAdmin):
     list_display = ('id_location', 'name', 'code', 'status', 'main_location', 'location')
 
 @admin.register(InventoryMovement)

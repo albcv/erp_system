@@ -1,0 +1,108 @@
+.receipt-summary {
+        background: #f8fafc;
+        padding: 1rem;
+        border-radius: 16px;
+        margin-bottom: 1.5rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    .receipt-summary .summary-item {
+        display: flex;
+        flex-direction: column;
+    }
+    .receipt-summary .summary-item label {
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: #475569;
+        letter-spacing: 0.5px;
+    }
+    .receipt-summary .summary-item .value {
+        font-size: 1rem;
+        font-weight: 500;
+        color: #0f172a;
+    }
+    .pending-badge {
+        background: #fef3c7;
+        color: #92400e;
+        padding: 0.2rem 0.6rem;
+        border-radius: 30px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .received-badge {
+        background: #d1fae5;
+        color: #065f46;
+        padding: 0.2rem 0.6rem;
+        border-radius: 30px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    /* Asegurar que la tabla no se salga del contenedor */
+    .table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin: 0 -1rem;  /* Compensar el padding del contenedor para mejor scroll */
+        padding: 0 1rem;
+    }
+
+    .receipt-table {
+        width: 100%;
+        min-width: 900px;  /* Forzar scroll horizontal si el ancho es menor */
+        border-collapse: collapse;
+        font-size: 0.85rem;
+    }
+
+    .receipt-table th,
+    .receipt-table td {
+        padding: 0.6rem 0.6rem;  /* Reducir padding para mayor espacio */
+        vertical-align: middle;
+        white-space: nowrap;     /* Evitar saltos de línea en celdas */
+    }
+
+    /* Permitir que descripción pueda tener más de una línea si es necesario */
+    .receipt-table .col-description {
+        white-space: normal;
+        min-width: 120px;
+        max-width: 180px;
+    }
+
+    .receipt-table input[type="number"] {
+        width: 70px;
+        padding: 0.3rem 0.4rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        text-align: center;
+        font-size: 0.85rem;
+    }
+
+    .receipt-table select {
+        padding: 0.3rem 0.4rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        min-width: 130px;
+        font-size: 0.85rem;
+    }
+
+    /* Anchos mínimos para columnas específicas */
+    .receipt-table .col-id {
+        min-width: 80px;
+    }
+    .receipt-table .col-pending {
+        min-width: 70px;
+        text-align: center;
+    }
+    .receipt-table .col-qty {
+        min-width: 90px;
+        text-align: center;
+    }
+    .receipt-table .col-location {
+        min-width: 160px;
+    }
+
+    .receipt-table .col-number {
+        text-align: right;
+        padding-right: 1rem;
+    }

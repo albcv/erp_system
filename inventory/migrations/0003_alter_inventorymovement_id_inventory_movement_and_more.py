@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
             field=models.CharField(db_index=True, max_length=20, unique=True, verbose_name='Inventory Movement ID'),
         ),
         migrations.AlterField(
-            model_name='locationinventary',
+            model_name='locationInventory',
             name='id_location',
             field=models.CharField(db_index=True, max_length=20, unique=True, verbose_name='Location ID'),
         ),

@@ -1,0 +1,114 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Goods Receipt for #{{ purchase_order.id_purchase_order }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/form.css' %}">
+<link rel="stylesheet" href="{% static 'purchases/css/goods_receipt_form.css' %}">
+
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-header">
+        <h1>Goods Receipt</h1>
+        <p>Receive materials for Purchase Order <strong>{{ purchase_order.id_purchase_order }}</strong></p>
+    </div>
+
+    <div class="form-card">
+        <form id="gr-form" method="post" onsubmit="return false">
+            {% csrf_token %}
+
+            <!-- Resumen de la orden -->
+            <div class="receipt-summary">
+                <div class="summary-item">
+                    <label>Purchase Order</label>
+                    <span class="value">{{ purchase_order.id_purchase_order }}</span>
+                </div>
+                <div class="summary-item">
+                    <label>Supplier</label>
+                    <span class="value">{{ purchase_order.id_supplier.name }} ({{ purchase_order.id_supplier.id_supplier }})</span>
+                </div>
+                <div class="summary-item">
+                    <label>Issue Date</label>
+                    <span class="value">{{ purchase_order.issue_date|date:"Y-m-d H:i" }}</span>
+                </div>
+                <div class="summary-item">
+                    <label>Status</label>
+                    <span class="value">{{ purchase_order.order_status.name }}</span>
+                </div>
+            </div>
+
+            <!-- Fecha de recepción -->
+            <div class="form-fields-column" style="margin-bottom: 1.5rem;">
+                <div class="form-field">
+                    <label for="receipt_date">Receipt Date</label>
+                    <input type="date" id="receipt_date" name="receipt_date" value="{% now 'Y-m-d' %}" required>
+                </div>
+            </div>
+
+            <!-- Líneas pendientes de recepción -->
+            <h3>Line Items to Receive</h3>
+            <div class="table-wrapper">
+                <table class="data-table receipt-table" id="receipt-items-table">
+                    <thead>
+                        <tr>
+                            <th>Position</th>
+                            <th class="col-id">ID Material</th>
+                            <th class="col-description">Description</th>
+                            <th>Unit</th>
+                            <th style="text-align:right;">Ordered</th>
+                            <th style="text-align:right;">Already Received</th>
+                            <th class="col-pending">Pending</th>
+                            <th class="col-qty">Qty to Receive</th>
+                            <th class="col-location">Location</th>
+                        </tr>
+                    </thead>
+                    <tbody id="receipt-items-container">
+                        {% for line in order_lines %}
+                        <tr class="receipt-item-row" data-line-pk="{{ line.pk }}">
+                            <td>{{ line.position }}</td>
+                            <td>{{ line.id_material.id_material }}</td>
+                            <td>{{ line.id_material.name }}</td>
+                            <td>{{ line.unit_material.symbol }}</td>
+                            <td style="text-align:right;">{{ line.quantity }}</td>
+                            <td style="text-align:right;">{{ line.receive_quantity }}</td>
+                            <td><span class="pending-badge">{{ line.pending_quantity }}</span></td>
+                            <td>
+                                <input type="number" class="qty-to-receive" 
+                                       min="0" max="{{ line.pending_quantity }}" 
+                                       placeholder="0" value="0" step="any">
+                            </td>
+                            <td>
+                                <select class="location-select">
+                                    <option value="">-- Select --</option>
+                                    {% for loc in locations %}
+                                    <option value="{{ loc.pk }}">{{ loc.code }} - {{ loc.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr class="empty-row"><td colspan="9">All lines have been fully received.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="form-actions">
+                <a href="{% url 'purchases:edit_purchase_order' purchase_order.pk %}" class="btn-cancel">Cancel</a>
+                <button type="submit" id="submit-gr-btn" class="btn-submit">Confirm Receipt</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Pasamos el PK de la orden al JavaScript mediante un elemento oculto -->
+<script id="po-pk-data" type="application/json">{{ purchase_order.pk }}</script>
+
+{% block extra_js %}
+<script src="{% static 'purchases/js/goods_receipt_form.js' %}"></script>
+{% endblock %}
+
+{% endblock %}

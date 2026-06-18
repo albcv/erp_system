@@ -39,7 +39,12 @@
 
 ### Gestión de Compras
 <img src="img/purchase_orders.png" alt="Vista de gestión de compras">
+
 <img src="img/create_purchase_order.png" alt="Formulario para crear una orden de compra">
+
+<img src="img/edit_purchase_order.png" alt="Formulario para editar una orden de compra">
+
+<img src="img/goods_receipt.png" alt="Formulario para crear un recibo de compra">
 
 ### Panel de administración
 <img src="img/panel_admin.png" alt="Gestión de usuarios">

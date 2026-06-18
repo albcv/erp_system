@@ -115,6 +115,9 @@
 
             <div class="form-actions">
                 <a href="{% url 'purchases:purchase_order_list' %}" class="btn-cancel">Cancel</a>
+                {% if purchase_order %}
+                    <a href="{% url 'purchases:goods_receipt_form' purchase_order.pk %}" class="btn-secondary">📦 Receive Goods</a>
+                {% endif %}
                 <button type="submit" id="submit-po-btn" class="btn-submit">
                     {% if purchase_order %}Update{% else %}Create{% endif %} Purchase Order
                 </button>

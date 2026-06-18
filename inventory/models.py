@@ -1,7 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import User
-from core.models import Status
+from core.models import Status, Currency
 from materials.models import Material, Unit
 
 
@@ -25,7 +25,7 @@ class MovementType(models.Model):
         return f"{self.symbol}"
     
 
-class LocationInventary(models.Model):
+class LocationInventory(models.Model):
 
     id_location = models.CharField(verbose_name="Location ID", max_length=20, unique=True, db_index=True)
     name = models.CharField(verbose_name="Name", max_length=100) 
@@ -52,11 +52,14 @@ class InventoryMovement(models.Model):
 
     id_inventory_movement = models.CharField(verbose_name="Inventory Movement ID", max_length=20, unique=True, db_index=True)
 
-    id_location = models.ForeignKey(LocationInventary, on_delete=models.PROTECT, verbose_name="Location ID")
+    id_location = models.ForeignKey(LocationInventory, on_delete=models.PROTECT, verbose_name="Location ID")
     id_material = models.ForeignKey(Material, on_delete=models.PROTECT, verbose_name="Material ID")
     quantity = models.IntegerField(verbose_name="Quantity") 
     unit_type = models.ForeignKey(Unit, verbose_name="Unit Type", on_delete=models.PROTECT)
     movement_type = models.ForeignKey(MovementType, on_delete=models.PROTECT, verbose_name="Movement ID")
+
+    price = models.FloatField(verbose_name='Price', default=0.0)
+    currency = models.ForeignKey(Currency, on_delete=models.PROTECT, verbose_name='Currency')
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
