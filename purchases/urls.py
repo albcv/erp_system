@@ -13,4 +13,6 @@ urlpatterns = [
     path('api/material/details/<str:material_id>/', views.get_material_details, name='api_material_details'),
     path('goods-receipt/<int:po_pk>/', views.goods_receipt_form, name='goods_receipt_form'),
     path('post_goods_receipt/', views.post_goods_receipt, name='post_goods_receipt'),
+    path('purchase-invoice/<int:po_pk>/', views.purchase_invoice_form, name='purchase_invoice_form'),
+    path('post_purchase_invoice/', views.post_purchase_invoice, name='post_purchase_invoice'),
 ]

@@ -82,3 +82,28 @@ class AccountAccount(models.Model):
    def __str__(self):
       return f"{self.code} - {self.name}"
    
+
+
+class Journal(models.Model):
+
+   id_journal = models.CharField(max_length=20, unique=True, db_index=True, verbose_name="Journal ID")
+   group_journal = models.CharField(verbose_name='Group Journal ID', max_length=10)
+   reference = models.CharField(verbose_name='Reference', max_length=100)
+   id_account = models.ForeignKey(AccountAccount, verbose_name="Account ID", on_delete=models.PROTECT)
+   credit = models.FloatField(verbose_name="Credit", default=0.0)
+   debit = models.FloatField(verbose_name="Debit", default=0.0)
+   currency = models.ForeignKey(Currency, verbose_name="Currency", on_delete=models.PROTECT)
+
+   status = models.ForeignKey(Status, on_delete=models.PROTECT, verbose_name='Status', default=1)
+
+   created_at = models.DateTimeField(auto_now_add=True)
+   updated_at = models.DateTimeField(auto_now=True)
+   created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, verbose_name="Created by")
+
+   class Meta:
+      verbose_name = "Journal"
+      verbose_name_plural = 'Journals'
+
+   def __str__(self):
+      return self.id_journal
+   

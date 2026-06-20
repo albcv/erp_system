@@ -7,17 +7,20 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.db.models import Max, F, Sum
 from django.db import transaction, models
 from django.core.paginator import Paginator
 from django.db.models import Q
-from .models import PurchaseOrder, LinesPurchaseOrder, OrderStatus
+from .models import PurchaseOrder, LinesPurchaseOrder, OrderStatus, PurchaseInvoice, InvoiceStatus, LinesPurchaseInvoice
 from suppliers.models import Supplier
 from materials.models import Material, Unit
 from core.models import Currency
 from users.models import UserRole
 from inventory.models import LocationInventory, InventoryMovement, MovementType
 from .models import GoodsReceipt, LinesGoodsReceipt, GoodsReceiptStatus
+from accounting.models import AccountAccount, Journal
+
 
 # ------------------------------------------------------------
 # Listado de órdenes de compra
@@ -454,6 +457,211 @@ def post_goods_receipt(request):
         response_data = {
             'success': True,
             'id_goods_receipt': next_gr_id,
+            'redirect_url': f'/purchases/edit/{po_pk}/',
+        }
+        return JsonResponse(response_data, status=200)
+
+    except ValueError as e:
+        return JsonResponse({'error': str(e)}, status=400)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON format in request body.'}, status=400)
+    except Exception as e:
+        print(f"CRITICAL ERROR: {e}")
+        return JsonResponse({'error': f'An unexpected server error occurred: {str(e)}'}, status=500)
+
+# ------------------------------------------------------------
+# Formulario de facturación de compras
+# ------------------------------------------------------------
+@login_required
+def purchase_invoice_form(request, po_pk=None):
+    max_permission = UserRole.objects.filter(user_id=request.user).aggregate(
+        max_perm=models.Max('role__purchases')
+    )['max_perm'] or 0
+    if max_permission == 0:
+        return redirect('dashboard')
+    if max_permission == 1:
+        return redirect('purchases:purchase_order_list')
+
+    purchase_order = get_object_or_404(PurchaseOrder, pk=po_pk)
+
+    # Verificar que la orden no esté ya facturada o cerrada
+    if purchase_order.order_status.symbol in ['CLOSED', 'INVOICED']:
+        messages.warning(request, f"The purchase order {po_pk} is already invoiced or closed. It's not possible to create a new invoice")
+        return redirect('purchases:edit_purchase_order', pk=po_pk)
+
+    order_lines = LinesPurchaseOrder.objects.filter(id_purchase_order=purchase_order).order_by('position')
+    currency = purchase_order.id_supplier.currency
+
+    total_amount = sum(line.quantity * line.price for line in order_lines)
+
+    context = {
+        'purchase_order': purchase_order,
+        'order_lines': order_lines,
+        'currency': currency,
+        'total_ordered_amount': total_amount,
+    }
+    return render(request, 'purchases/purchase_invoice_form.html', context)
+
+# ------------------------------------------------------------
+# Procesar factura de compra (vía AJAX POST)
+# ------------------------------------------------------------
+@csrf_exempt
+@require_POST
+@transaction.atomic
+@login_required
+def post_purchase_invoice(request):
+    try:
+        data = json.loads(request.body)
+
+        po_pk = data.get('po_pk')
+        due_date = data.get('due_date')
+        lines_data = data.get('lines', [])
+
+        if not lines_data or not due_date:
+            return JsonResponse({'error': 'Missing lines or due date'}, status=400)
+
+        purchase_order = get_object_or_404(PurchaseOrder, pk=po_pk)
+
+        if purchase_order.order_status.symbol in ['CLOSED', 'INVOICED']:
+            return JsonResponse({'error': f'Purchase order {po_pk} is already invoiced or closed.'}, status=400)
+
+        supplier = purchase_order.id_supplier
+
+        # Generar ID de factura
+        max_id_result = PurchaseInvoice.objects.aggregate(max_id=Max('id_invoice'))
+        last_id_str = max_id_result.get('max_id')
+        if last_id_str and last_id_str.isdigit():
+            next_invoice_number = int(last_id_str) + 1
+        else:
+            next_invoice_number = 1
+        next_invoice_id = str(next_invoice_number).zfill(10)
+
+        invoice_status_pending, _ = InvoiceStatus.objects.get_or_create(
+            symbol="PENDING",
+            defaults={'name': 'Pending', 'created_by': request.user}
+        )
+
+        total_amount = 0
+        invoiced_lines = []
+
+        # Primero validar todas las líneas y calcular total
+        for i, line_data in enumerate(lines_data, start=1):
+            po_line = get_object_or_404(LinesPurchaseOrder, pk=line_data['line_pk'])
+            qty_to_invoice = int(line_data['quantity_to_invoice'])
+
+            if qty_to_invoice <= 0:
+                continue
+
+            line_total = qty_to_invoice * po_line.price
+            total_amount += line_total
+
+            line_invoice_id = f"{next_invoice_id}-{str(i).zfill(3)}"
+            invoice_line = LinesPurchaseInvoice(
+                id_invoice_line=line_invoice_id,
+                id_purchase_order_line=po_line,
+                price=po_line.price,
+                quantity=qty_to_invoice,
+                currency_supplier=purchase_order.id_supplier.currency,
+                created_by=request.user,
+            )
+            invoiced_lines.append(invoice_line)
+
+        if total_amount == 0:
+            return JsonResponse({'error': 'Total amount is zero. Check quantities.'}, status=400)
+
+        # Crear la factura
+        purchase_invoice = PurchaseInvoice.objects.create(
+            id_invoice=next_invoice_id,
+            id_purchase_order=purchase_order,
+            due_date=due_date,
+            total_amount=total_amount,
+            currency_invoice=purchase_order.id_supplier.currency,
+            status=invoice_status_pending,
+            created_by=request.user,
+        )
+
+        # Guardar líneas de la factura
+        for line in invoiced_lines:
+            line.id_purchase_invoice = purchase_invoice
+            line.save()
+
+        # Asientos contables (usar get_or_create para evitar errores si no existen)
+        purchase_account, _ = AccountAccount.objects.get_or_create(
+            code='1200',
+            defaults={
+                'name': 'Inventory Purchases',
+                'account_type_id': 1,  # Asume que existe el tipo
+                'account_group_id': 1,
+                'nature_id': 1,
+                'currency_id': purchase_order.id_supplier.currency.pk,
+                'country_id': 1,
+                'status_id': 1,
+                'created_by': request.user
+            }
+        )
+        bank_account, _ = AccountAccount.objects.get_or_create(
+            code='1001',
+            defaults={
+                'name': 'Bank Account',
+                'account_type_id': 1,
+                'account_group_id': 1,
+                'nature_id': 1,
+                'currency_id': purchase_order.id_supplier.currency.pk,
+                'country_id': 1,
+                'status_id': 1,
+                'created_by': request.user
+            }
+        )
+
+        group_id = purchase_invoice.id_invoice
+
+        # Asiento de débito (compra)
+        Journal.objects.create(
+            id_journal=f"INV-{group_id}-D1",
+            group_journal=group_id,
+            reference=f"INV-{group_id} - Inventory/Purchases (Paid)",
+            id_account=purchase_account,
+            credit=0.0,
+            debit=total_amount,
+            currency=purchase_order.id_supplier.currency,
+            created_by=request.user
+        )
+
+        # Asiento de crédito (pago desde banco)
+        Journal.objects.create(
+            id_journal=f"INV-{group_id}-C1",
+            group_journal=group_id,
+            reference=f"INV-{group_id} - Payment from bank",
+            id_account=bank_account,
+            credit=total_amount,
+            debit=0.0,
+            currency=purchase_order.id_supplier.currency,
+            created_by=request.user
+        )
+
+        # Actualizar estado de la orden de compra
+        status_received, _ = OrderStatus.objects.get_or_create(
+            symbol="RECEIVED",
+            defaults={'name': 'Received', 'created_by': request.user}
+        )
+        status_closed, _ = OrderStatus.objects.get_or_create(
+            symbol="CLOSED",
+            defaults={'name': 'Closed', 'created_by': request.user}
+        )
+        status_invoiced, _ = OrderStatus.objects.get_or_create(
+            symbol="INVOICED",
+            defaults={'name': 'Invoiced', 'created_by': request.user}
+        )
+
+        if purchase_order.order_status.symbol == status_received.symbol:
+            purchase_order.order_status = status_closed
+        else:
+            purchase_order.order_status = status_invoiced
+        purchase_order.save()
+
+        response_data = {
+            'success': True,
+            'id_invoice': next_invoice_id,
             'redirect_url': f'/purchases/edit/{po_pk}/',
         }
         return JsonResponse(response_data, status=200)

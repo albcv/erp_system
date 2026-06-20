@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import AccountNature, AccountGroup, AccountType, AccountAccount
+from .models import AccountNature, AccountGroup, AccountType, AccountAccount, Journal
 
 @admin.register(AccountNature)
 class AccountNatureAdmin(admin.ModelAdmin):
@@ -17,3 +17,9 @@ class AccountTypeAdmin(admin.ModelAdmin):
 @admin.register(AccountAccount)
 class AccountAccountAdmin(admin.ModelAdmin):
     list_display = ('id_account', 'name', 'code', 'account_type', 'account_group', 'nature', 'is_control_account', 'status')
+
+
+@admin.register(Journal)
+class JournalAdmin(admin.ModelAdmin):
+    list_display = ('id_journal', 'group_journal', 'reference', 'id_account', 'credit', 'debit', 'currency')
+

@@ -1,0 +1,245 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Purchase Invoice for #{{ purchase_order.id_purchase_order }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/form.css' %}">
+<link rel="stylesheet" href="{% static 'purchases/css/goods_receipt_form.css' %}">
+<link rel="stylesheet" href="{% static 'purchases/css/purchase_invoice_form.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-header">
+        <h1>Purchase Invoice</h1>
+        <p>Invoice materials for Purchase Order <strong>{{ purchase_order.id_purchase_order }}</strong></p>
+    </div>
+
+    <div class="form-card">
+        <form id="inv-form" method="post" onsubmit="return false">
+            {% csrf_token %}
+
+            <!-- Resumen de la orden -->
+            <div class="invoice-summary">
+                <div class="summary-item">
+                    <label>Purchase Order</label>
+                    <span class="value">{{ purchase_order.id_purchase_order }}</span>
+                </div>
+                <div class="summary-item">
+                    <label>Supplier</label>
+                    <span class="value">{{ purchase_order.id_supplier.name }} ({{ purchase_order.id_supplier.id_supplier }})</span>
+                </div>
+                <div class="summary-item">
+                    <label>Issue Date</label>
+                    <span class="value">{{ purchase_order.issue_date|date:"Y-m-d H:i" }}</span>
+                </div>
+                <div class="summary-item">
+                    <label>Status</label>
+                    <span class="value">{{ purchase_order.order_status.name }}</span>
+                </div>
+                <div class="summary-item">
+                    <label>Currency</label>
+                    <span class="value">{{ currency.code }}</span>
+                </div>
+            </div>
+
+            <!-- Fecha de vencimiento -->
+            <div class="form-fields-column" style="margin-bottom: 1.5rem;">
+                <div class="form-field">
+                    <label for="due_date">Due Date</label>
+                    <input type="date" id="due_date" name="due_date" value="{% now 'Y-m-d' %}" required>
+                </div>
+            </div>
+
+            <!-- Líneas de la orden para facturar -->
+            <h3>Line Items to Invoice</h3>
+            <div class="table-wrapper">
+                <table class="data-table invoice-table" id="invoice-items-table">
+                    <thead>
+                        <tr>
+                            <th class="col-id">ID Material</th>
+                            <th>Unit</th>
+                            <th style="text-align:right;">Price</th>
+                            <th style="text-align:right;">Ordered Qty</th>
+                            <th class="col-qty-input">Qty to Invoice</th>
+                            <th class="col-subtotal">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoice-items-container">
+                        {% for line in order_lines %}
+                        <tr class="invoice-item-row" data-line-pk="{{ line.pk }}" data-price="{{ line.price }}">
+                            <td>{{ line.id_material.id_material }}</td>
+                            <td>{{ line.unit_material.symbol }}</td>
+                            <td style="text-align:right;">{{ line.price }} {{ currency.code }}</td>
+                            <td style="text-align:right;">{{ line.quantity }}</td>
+                            <td>
+                                <input type="number" class="qty-to-invoice" 
+                                       min="0" max="{{ line.quantity }}" 
+                                       placeholder="0" value="{{ line.quantity }}" step="any">
+                            </td>
+                            <td class="col-subtotal line-subtotal">{{ line.price|floatformat:2 }} {{ currency.code }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr class="empty-row"><td colspan="6">No lines available for invoicing.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Total de la factura -->
+            <div class="invoice-total">
+                <span class="total-label">Total Invoice Amount:</span>
+                <span class="total-amount" id="invoice-total-amount">0.00 {{ currency.code }}</span>
+            </div>
+
+            <div class="form-actions">
+                <a href="{% url 'purchases:edit_purchase_order' purchase_order.pk %}" class="btn-cancel">Cancel</a>
+                <button type="submit" id="submit-inv-btn" class="btn-submit">Confirm Invoice</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Pasamos el PK de la orden al JavaScript mediante un elemento oculto -->
+<script id="po-pk-data" type="application/json">{{ purchase_order.pk }}</script>
+
+{% block extra_js %}
+<script>
+    (function() {
+        'use strict';
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const form = document.getElementById('inv-form');
+        const submitBtn = document.getElementById('submit-inv-btn');
+        const dueDate = document.getElementById('due_date');
+        const poPk = parseInt(document.getElementById('po-pk-data').textContent, 10);
+        const currencyCode = '{{ currency.code }}';
+
+        // Función para actualizar el subtotal de una línea y el total general
+        function updateTotals() {
+            const rows = document.querySelectorAll('.invoice-item-row');
+            let total = 0;
+
+            rows.forEach(row => {
+                const qtyInput = row.querySelector('.qty-to-invoice');
+                const subtotalCell = row.querySelector('.line-subtotal');
+                const price = parseFloat(row.dataset.price) || 0;
+                const qty = parseFloat(qtyInput.value) || 0;
+                const subtotal = price * qty;
+
+                subtotalCell.textContent = subtotal.toFixed(2) + ' ' + currencyCode;
+                total += subtotal;
+            });
+
+            document.getElementById('invoice-total-amount').textContent = total.toFixed(2) + ' ' + currencyCode;
+        }
+
+        // Event listener para actualizar totales al cambiar cantidades
+        document.querySelectorAll('.qty-to-invoice').forEach(input => {
+            input.addEventListener('input', function() {
+                const max = parseFloat(this.getAttribute('max'));
+                let val = parseFloat(this.value) || 0;
+                if (val > max) {
+                    this.value = max;
+                    val = max;
+                }
+                if (val < 0) {
+                    this.value = 0;
+                    val = 0;
+                }
+                updateTotals();
+            });
+
+            input.addEventListener('blur', function() {
+                let val = parseFloat(this.value) || 0;
+                const max = parseFloat(this.getAttribute('max'));
+                if (val > max) this.value = max;
+                if (val < 0) this.value = 0;
+                updateTotals();
+            });
+        });
+
+        // Inicializar totales
+        updateTotals();
+
+        // Función para recoger datos del formulario
+        function collectFormData() {
+            const rows = document.querySelectorAll('.invoice-item-row');
+            const linesData = [];
+            let hasError = false;
+
+            rows.forEach(row => {
+                const linePk = row.dataset.linePk;
+                const qtyInput = row.querySelector('.qty-to-invoice');
+                const qty = parseFloat(qtyInput.value) || 0;
+
+                if (qty > 0) {
+                    linesData.push({
+                        line_pk: linePk,
+                        quantity_to_invoice: qty
+                    });
+                }
+            });
+
+            if (linesData.length === 0) {
+                alert('At least one line must have a quantity to invoice.');
+                hasError = true;
+            }
+
+            if (hasError) return null;
+
+            return {
+                po_pk: poPk,
+                due_date: dueDate.value,
+                lines: linesData
+            };
+        }
+
+        // Función para enviar la factura
+        async function submitInvoice() {
+            const payload = collectFormData();
+            if (!payload) return;
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...';
+
+            try {
+                const response = await fetch('/purchases/post_purchase_invoice/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Server error');
+                }
+
+                if (result.success) {
+                    alert(`Invoice ${result.id_invoice} created successfully.`);
+                    window.location.href = result.redirect_url || `/purchases/edit/${poPk}/`;
+                } else {
+                    throw new Error(result.error || 'Unknown error');
+                }
+            } catch (error) {
+                alert(`Failed to create invoice: ${error.message}`);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Confirm Invoice';
+            }
+        }
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            submitInvoice();
+        });
+    })();
+</script>
+{% endblock %}
+
+{% endblock %}
