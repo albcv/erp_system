@@ -44,7 +44,7 @@ class LocationInventory(models.Model):
         verbose_name_plural = "Inventory Locations"
 
     def __str__(self):
-        return f"{self.code}"
+        return f"{self.id_location}-{self.name}"
 
 
 

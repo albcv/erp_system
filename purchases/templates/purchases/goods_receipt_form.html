@@ -6,7 +6,6 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'core/css/form.css' %}">
 <link rel="stylesheet" href="{% static 'purchases/css/goods_receipt_form.css' %}">
-
 {% endblock %}
 
 {% block content %}
@@ -54,27 +53,21 @@
                 <table class="data-table receipt-table" id="receipt-items-table">
                     <thead>
                         <tr>
-                            <th>Position</th>
                             <th class="col-id">ID Material</th>
-                            <th class="col-description">Description</th>
-                            <th>Unit</th>
-                            <th style="text-align:right;">Ordered</th>
+                            <th style="text-align:right;">Ordered Qty</th>
                             <th style="text-align:right;">Already Received</th>
-                            <th class="col-pending">Pending</th>
-                            <th class="col-qty">Qty to Receive</th>
+                            <th class="col-qty">Received Qty</th>
                             <th class="col-location">Location</th>
+                            <th>Unit</th>
+                            <th style="text-align:right;">Price</th>
                         </tr>
                     </thead>
                     <tbody id="receipt-items-container">
                         {% for line in order_lines %}
                         <tr class="receipt-item-row" data-line-pk="{{ line.pk }}">
-                            <td>{{ line.position }}</td>
                             <td>{{ line.id_material.id_material }}</td>
-                            <td>{{ line.id_material.name }}</td>
-                            <td>{{ line.unit_material.symbol }}</td>
                             <td style="text-align:right;">{{ line.quantity }}</td>
                             <td style="text-align:right;">{{ line.receive_quantity }}</td>
-                            <td><span class="pending-badge">{{ line.pending_quantity }}</span></td>
                             <td>
                                 <input type="number" class="qty-to-receive" 
                                        min="0" max="{{ line.pending_quantity }}" 
@@ -84,13 +77,17 @@
                                 <select class="location-select">
                                     <option value="">-- Select --</option>
                                     {% for loc in locations %}
-                                    <option value="{{ loc.pk }}">{{ loc.code }} - {{ loc.name }}</option>
+                                    <option value="{{ loc.pk }}">
+                                        {{ loc.code }} - {{ loc.name }}
+                                    </option>
                                     {% endfor %}
                                 </select>
                             </td>
+                            <td>{{ line.unit_material.symbol }}</td>
+                            <td style="text-align:right;">{{ line.price }} {{ line.currency_supplier.code }}</td>
                         </tr>
                         {% empty %}
-                        <tr class="empty-row"><td colspan="9">All lines have been fully received.</td></tr>
+                        <tr class="empty-row"><td colspan="7">All lines have been fully received.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>

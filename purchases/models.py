@@ -110,7 +110,7 @@ class LinesGoodsReceipt(models.Model):
 
     id_goods_receipt_line = models.CharField(verbose_name="ID Goods Receipt Line", max_length=20, unique=True, db_index=True)
     id_goods_receipt = models.ForeignKey(GoodsReceipt, on_delete=models.CASCADE, verbose_name="ID Goods Receipts", related_name='lines')
-    id_purchase_order_line = models.ForeignKey(LinesPurchaseOrder, on_delete=models.PROTECT, verbose_name='ID Purchase Order Line')
+    id_purchase_order_line = models.ForeignKey(LinesPurchaseOrder, on_delete=models.CASCADE, verbose_name='ID Purchase Order Line')
     id_material = models.ForeignKey(Material, on_delete=models.PROTECT, verbose_name="Material ID")
     unit_material = models.ForeignKey(Unit, verbose_name="Unit Type", on_delete=models.PROTECT)
     receive_quantity = models.IntegerField(verbose_name='Receive Quantity')
@@ -128,3 +128,8 @@ class LinesGoodsReceipt(models.Model):
 
     def __str__(self):
         return self.id_goods_receipt_line
+    
+
+
+
+    
