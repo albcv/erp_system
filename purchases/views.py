@@ -525,8 +525,6 @@ def post_purchase_invoice(request):
         if purchase_order.order_status.symbol in ['CLOSED', 'INVOICED']:
             return JsonResponse({'error': f'Purchase order {po_pk} is already invoiced or closed.'}, status=400)
 
-        supplier = purchase_order.id_supplier
-
         # Generar ID de factura
         max_id_result = PurchaseInvoice.objects.aggregate(max_id=Max('id_invoice'))
         last_id_str = max_id_result.get('max_id')
@@ -536,6 +534,7 @@ def post_purchase_invoice(request):
             next_invoice_number = 1
         next_invoice_id = str(next_invoice_number).zfill(10)
 
+        # Estado de la factura (asumimos que existe "PENDING")
         invoice_status_pending, _ = InvoiceStatus.objects.get_or_create(
             symbol="PENDING",
             defaults={'name': 'Pending', 'created_by': request.user}
@@ -544,7 +543,7 @@ def post_purchase_invoice(request):
         total_amount = 0
         invoiced_lines = []
 
-        # Primero validar todas las líneas y calcular total
+        # Procesar líneas
         for i, line_data in enumerate(lines_data, start=1):
             po_line = get_object_or_404(LinesPurchaseOrder, pk=line_data['line_pk'])
             qty_to_invoice = int(line_data['quantity_to_invoice'])
@@ -561,7 +560,7 @@ def post_purchase_invoice(request):
                 id_purchase_order_line=po_line,
                 price=po_line.price,
                 quantity=qty_to_invoice,
-                currency_supplier=purchase_order.id_supplier.currency,
+                currency_invoice_line=po_line.currency_supplier,   # ← CORREGIDO
                 created_by=request.user,
             )
             invoiced_lines.append(invoice_line)
@@ -576,7 +575,7 @@ def post_purchase_invoice(request):
             due_date=due_date,
             total_amount=total_amount,
             currency_invoice=purchase_order.id_supplier.currency,
-            status=invoice_status_pending,
+            status=invoice_status_pending,   # ← usar InvoiceStatus
             created_by=request.user,
         )
 
@@ -590,7 +589,7 @@ def post_purchase_invoice(request):
             code='1200',
             defaults={
                 'name': 'Inventory Purchases',
-                'account_type_id': 1,  # Asume que existe el tipo
+                'account_type_id': 1,
                 'account_group_id': 1,
                 'nature_id': 1,
                 'currency_id': purchase_order.id_supplier.currency.pk,
@@ -673,3 +672,13 @@ def post_purchase_invoice(request):
     except Exception as e:
         print(f"CRITICAL ERROR: {e}")
         return JsonResponse({'error': f'An unexpected server error occurred: {str(e)}'}, status=500)
+
+
+@login_required
+def mark_invoice_paid(request, invoice_id):
+    invoice = get_object_or_404(PurchaseInvoice, id_invoice=invoice_id)
+    # Cambiar estado a PAID
+    paid_status, _ = InvoiceStatus.objects.get_or_create(symbol="PAID", defaults={'name': 'Paid'})
+    invoice.status = paid_status
+    invoice.save()
+    return JsonResponse({'success': True, 'redirect_url': f'/purchases/edit/{invoice.id_purchase_order.pk}/'})

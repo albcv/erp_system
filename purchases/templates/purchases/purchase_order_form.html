@@ -121,9 +121,14 @@
                     <a href="{% url 'purchases:goods_receipt_form' purchase_order.pk %}" class="btn-secondary">📦 Receive Goods</a>
                 {% endif %}
 
-                <!-- Botón de facturación: visible si la orden existe y no está en estado borrador -->
-                {% if purchase_order and purchase_order.order_status.symbol != 'DRAFT' %}
+                <!-- Botón de facturación: visible si la orden existe, no está en borrador y NO tiene factura asociada -->
+                {% if purchase_order and purchase_order.order_status.symbol != 'DRAFT' and not purchase_invoice %}
                     <a href="{% url 'purchases:purchase_invoice_form' purchase_order.pk %}" class="btn-secondary">📄 Create Invoice</a>
+                {% endif %}
+
+                <!-- Botón para ir a la factura si ya existe -->
+                {% if purchase_invoice %}
+                    <a href="{% url 'purchases:purchase_invoice_form' purchase_order.pk %}" class="btn-secondary">💰 Go to Invoice</a>
                 {% endif %}
 
                 <button type="submit" id="submit-po-btn" class="btn-submit">

@@ -7,6 +7,42 @@
 <link rel="stylesheet" href="{% static 'core/css/form.css' %}">
 <link rel="stylesheet" href="{% static 'purchases/css/goods_receipt_form.css' %}">
 <link rel="stylesheet" href="{% static 'purchases/css/purchase_invoice_form.css' %}">
+<style>
+    .payment-actions {
+        display: none;
+        margin-top: 1rem;
+        padding: 1rem;
+        background: #f0fdf4;
+        border: 2px solid #86efac;
+        border-radius: 16px;
+        text-align: center;
+    }
+    .payment-actions.show {
+        display: block;
+    }
+    .payment-actions .btn-pay {
+        background: #22c55e;
+        color: white;
+        border: none;
+        padding: 0.6rem 2rem;
+        border-radius: 40px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .payment-actions .btn-pay:hover {
+        background: #16a34a;
+    }
+    .payment-actions .btn-pay:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    .payment-message {
+        font-weight: 600;
+        color: #065f46;
+        margin-bottom: 0.5rem;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -93,9 +129,19 @@
                 <span class="total-amount" id="invoice-total-amount">0.00 {{ currency.code }}</span>
             </div>
 
+            <!-- Área de acciones principales -->
             <div class="form-actions">
                 <a href="{% url 'purchases:edit_purchase_order' purchase_order.pk %}" class="btn-cancel">Cancel</a>
                 <button type="submit" id="submit-inv-btn" class="btn-submit">Confirm Invoice</button>
+            </div>
+
+            <!-- Área de acciones de pago (se muestra después de crear la factura) -->
+            <div id="payment-actions" class="payment-actions">
+                <div class="payment-message" id="payment-message">✅ Invoice created successfully!</div>
+                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    <a href="{% url 'purchases:edit_purchase_order' purchase_order.pk %}" class="btn-cancel">Go Back</a>
+                    <button type="button" id="mark-paid-btn" class="btn-pay">💰 Mark as Paid</button>
+                </div>
             </div>
         </form>
     </div>
@@ -115,6 +161,9 @@
         const dueDate = document.getElementById('due_date');
         const poPk = parseInt(document.getElementById('po-pk-data').textContent, 10);
         const currencyCode = '{{ currency.code }}';
+        const paymentActions = document.getElementById('payment-actions');
+        const markPaidBtn = document.getElementById('mark-paid-btn');
+        let invoiceId = null;
 
         // Función para actualizar el subtotal de una línea y el total general
         function updateTotals() {
@@ -196,6 +245,44 @@
             };
         }
 
+        // Función para marcar la factura como pagada
+        async function markInvoicePaid() {
+            if (!invoiceId) return;
+            markPaidBtn.disabled = true;
+            markPaidBtn.textContent = 'Processing...';
+
+            try {
+                const response = await fetch(`/purchases/mark_invoice_paid/${invoiceId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Server error');
+                }
+
+                if (result.success) {
+                    alert('Invoice marked as PAID successfully.');
+                    window.location.href = result.redirect_url || `/purchases/edit/${poPk}/`;
+                } else {
+                    throw new Error(result.error || 'Unknown error');
+                }
+            } catch (error) {
+                alert(`Failed to mark as paid: ${error.message}`);
+                markPaidBtn.disabled = false;
+                markPaidBtn.textContent = '💰 Mark as Paid';
+            }
+        }
+
+        // Evento para el botón "Mark as Paid"
+        markPaidBtn.addEventListener('click', markInvoicePaid);
+
         // Función para enviar la factura
         async function submitInvoice() {
             const payload = collectFormData();
@@ -222,8 +309,18 @@
                 }
 
                 if (result.success) {
-                    alert(`Invoice ${result.id_invoice} created successfully.`);
-                    window.location.href = result.redirect_url || `/purchases/edit/${poPk}/`;
+                    invoiceId = result.id_invoice;
+                    // Mostrar área de pago
+                    paymentActions.classList.add('show');
+                    // Ocultar el botón de confirmación y el formulario de edición (opcional)
+                    submitBtn.style.display = 'none';
+                    // Mostrar mensaje
+                    document.getElementById('payment-message').textContent = `✅ Invoice ${invoiceId} created successfully. You can now mark it as paid.`;
+                    // Habilitar botón de pago
+                    markPaidBtn.disabled = false;
+                    markPaidBtn.textContent = '💰 Mark as Paid';
+                    // Desplazar hacia el área de pago
+                    paymentActions.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 } else {
                     throw new Error(result.error || 'Unknown error');
                 }

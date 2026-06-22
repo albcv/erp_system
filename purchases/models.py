@@ -158,7 +158,7 @@ class PurchaseInvoice(models.Model):
    currency_invoice = models.ForeignKey(Currency, on_delete=models.PROTECT, verbose_name='Currency')
 
   
-   status = models.ForeignKey(GoodsReceiptStatus, default=1, on_delete=models.PROTECT, verbose_name='Status')
+   status = models.ForeignKey(InvoiceStatus, default=1, on_delete=models.PROTECT, verbose_name='Status')
 
    created_at = models.DateTimeField(auto_now_add=True)
    updated_at = models.DateTimeField(auto_now=True)

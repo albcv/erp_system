@@ -15,4 +15,5 @@ urlpatterns = [
     path('post_goods_receipt/', views.post_goods_receipt, name='post_goods_receipt'),
     path('purchase-invoice/<int:po_pk>/', views.purchase_invoice_form, name='purchase_invoice_form'),
     path('post_purchase_invoice/', views.post_purchase_invoice, name='post_purchase_invoice'),
+    path('mark_invoice_paid/<str:invoice_id>/', views.mark_invoice_paid, name='mark_invoice_paid'),
 ]
