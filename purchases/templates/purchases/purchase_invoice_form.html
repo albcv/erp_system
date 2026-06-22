@@ -42,21 +42,41 @@
         color: #065f46;
         margin-bottom: 0.5rem;
     }
+
+    /* Estilos para modo vista (factura existente) */
+    .invoice-view-mode .qty-to-invoice {
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        color: #1e293b;
+        cursor: default;
+    }
+    .invoice-view-mode .qty-to-invoice:focus {
+        box-shadow: none;
+        border-color: #e2e8f0;
+    }
+    .invoice-view-mode .form-actions .btn-submit {
+        display: none;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="form-container">
     <div class="form-header">
-        <h1>Purchase Invoice</h1>
-        <p>Invoice materials for Purchase Order <strong>{{ purchase_order.id_purchase_order }}</strong></p>
+        {% if is_existing %}
+            <h1>Invoice #{{ invoice.id_invoice }}</h1>
+            <p>Invoice details for Purchase Order <strong>{{ purchase_order.id_purchase_order }}</strong></p>
+        {% else %}
+            <h1>Purchase Invoice</h1>
+            <p>Invoice materials for Purchase Order <strong>{{ purchase_order.id_purchase_order }}</strong></p>
+        {% endif %}
     </div>
 
     <div class="form-card">
         <form id="inv-form" method="post" onsubmit="return false">
             {% csrf_token %}
 
-            <!-- Resumen de la orden -->
+            <!-- Resumen de la orden (siempre visible) -->
             <div class="invoice-summary">
                 <div class="summary-item">
                     <label>Purchase Order</label>
@@ -78,71 +98,135 @@
                     <label>Currency</label>
                     <span class="value">{{ currency.code }}</span>
                 </div>
+                {% if is_existing %}
+                <div class="summary-item">
+                    <label>Invoice Status</label>
+                    <span class="value">{{ invoice.status.name }}</span>
+                </div>
+                <div class="summary-item">
+                    <label>Invoice Date</label>
+                    <span class="value">{{ invoice.invoice_date|date:"Y-m-d" }}</span>
+                </div>
+                {% endif %}
             </div>
 
-            <!-- Fecha de vencimiento -->
+            <!-- Fecha de vencimiento (solo visible en creación) -->
+            {% if not is_existing %}
             <div class="form-fields-column" style="margin-bottom: 1.5rem;">
                 <div class="form-field">
                     <label for="due_date">Due Date</label>
                     <input type="date" id="due_date" name="due_date" value="{% now 'Y-m-d' %}" required>
                 </div>
             </div>
+            {% endif %}
 
-            <!-- Líneas de la orden para facturar -->
-            <h3>Line Items to Invoice</h3>
-            <div class="table-wrapper">
-                <table class="data-table invoice-table" id="invoice-items-table">
-                    <thead>
-                        <tr>
-                            <th class="col-id">ID Material</th>
-                            <th>Unit</th>
-                            <th style="text-align:right;">Price</th>
-                            <th style="text-align:right;">Ordered Qty</th>
-                            <th class="col-qty-input">Qty to Invoice</th>
-                            <th class="col-subtotal">Subtotal</th>
-                        </tr>
-                    </thead>
-                    <tbody id="invoice-items-container">
-                        {% for line in order_lines %}
-                        <tr class="invoice-item-row" data-line-pk="{{ line.pk }}" data-price="{{ line.price }}">
-                            <td>{{ line.id_material.id_material }}</td>
-                            <td>{{ line.unit_material.symbol }}</td>
-                            <td style="text-align:right;">{{ line.price }} {{ currency.code }}</td>
-                            <td style="text-align:right;">{{ line.quantity }}</td>
-                            <td>
-                                <input type="number" class="qty-to-invoice" 
-                                       min="0" max="{{ line.quantity }}" 
-                                       placeholder="0" value="{{ line.quantity }}" step="any">
-                            </td>
-                            <td class="col-subtotal line-subtotal">{{ line.price|floatformat:2 }} {{ currency.code }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr class="empty-row"><td colspan="6">No lines available for invoicing.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Total de la factura -->
-            <div class="invoice-total">
-                <span class="total-label">Total Invoice Amount:</span>
-                <span class="total-amount" id="invoice-total-amount">0.00 {{ currency.code }}</span>
-            </div>
-
-            <!-- Área de acciones principales -->
-            <div class="form-actions">
-                <a href="{% url 'purchases:edit_purchase_order' purchase_order.pk %}" class="btn-cancel">Cancel</a>
-                <button type="submit" id="submit-inv-btn" class="btn-submit">Confirm Invoice</button>
-            </div>
-
-            <!-- Área de acciones de pago (se muestra después de crear la factura) -->
-            <div id="payment-actions" class="payment-actions">
-                <div class="payment-message" id="payment-message">✅ Invoice created successfully!</div>
-                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-                    <a href="{% url 'purchases:edit_purchase_order' purchase_order.pk %}" class="btn-cancel">Go Back</a>
-                    <button type="button" id="mark-paid-btn" class="btn-pay">💰 Mark as Paid</button>
+            <!-- Líneas de la factura (modo creación o vista) -->
+            {% if is_existing %}
+                <!-- MODO VISTA: mostrar líneas de la factura existente -->
+                <h3>Invoice Lines</h3>
+                <div class="table-wrapper">
+                    <table class="data-table invoice-table" id="invoice-items-table">
+                        <thead>
+                            <tr>
+                                <th class="col-id">ID Material</th>
+                                <th>Unit</th>
+                                <th style="text-align:right;">Price</th>
+                                <th style="text-align:right;">Invoiced Qty</th>
+                                <th class="col-subtotal">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for line in invoice_lines %}
+                            <tr>
+                                <td>{{ line.id_purchase_order_line.id_material.id_material }}</td>
+                                <td>{{ line.id_purchase_order_line.unit_material.symbol }}</td>
+                                <td style="text-align:right;">{{ line.price }} {{ currency.code }}</td>
+                                <td style="text-align:right;">{{ line.quantity }}</td>
+                                <td class="col-subtotal">{{ line.price|floatformat:2 }} {{ currency.code }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr class="empty-row"><td colspan="5">No invoice lines found.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
-            </div>
+
+                <div class="invoice-total">
+                    <span class="total-label">Total Invoice Amount:</span>
+                    <span class="total-amount" id="invoice-total-amount">{{ total_invoice_amount|floatformat:2 }} {{ currency.code }}</span>
+                </div>
+
+                <!-- Botones para factura existente -->
+                <div class="form-actions">
+                    <a href="{% url 'purchases:edit_purchase_order' purchase_order.pk %}" class="btn-cancel">Go Back</a>
+                    {% if invoice.status.symbol == 'PENDING' %}
+                        <button type="button" id="mark-paid-btn" class="btn-pay">💰 Mark as Paid</button>
+                    {% else %}
+                        <span class="btn-secondary" style="background: #e2e8f0; color: #475569; cursor: default;">✅ Already Paid</span>
+                    {% endif %}
+                </div>
+
+                <!-- Área de mensaje de pago (oculta por defecto) -->
+                <div id="payment-actions" class="payment-actions">
+                    <div class="payment-message" id="payment-message">✅ Invoice marked as paid!</div>
+                </div>
+
+            {% else %}
+                <!-- MODO CREACIÓN: líneas de la orden para facturar -->
+                <h3>Line Items to Invoice</h3>
+                <div class="table-wrapper">
+                    <table class="data-table invoice-table" id="invoice-items-table">
+                        <thead>
+                            <tr>
+                                <th class="col-id">ID Material</th>
+                                <th>Unit</th>
+                                <th style="text-align:right;">Price</th>
+                                <th style="text-align:right;">Ordered Qty</th>
+                                <th class="col-qty-input">Qty to Invoice</th>
+                                <th class="col-subtotal">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="invoice-items-container">
+                            {% for line in order_lines %}
+                            <tr class="invoice-item-row" data-line-pk="{{ line.pk }}" data-price="{{ line.price }}">
+                                <td>{{ line.id_material.id_material }}</td>
+                                <td>{{ line.unit_material.symbol }}</td>
+                                <td style="text-align:right;">{{ line.price }} {{ currency.code }}</td>
+                                <td style="text-align:right;">{{ line.quantity }}</td>
+                                <td>
+                                    <input type="number" class="qty-to-invoice" 
+                                           min="0" max="{{ line.quantity }}" 
+                                           placeholder="0" value="{{ line.quantity }}" step="any">
+                                </td>
+                                <td class="col-subtotal line-subtotal">{{ line.price|floatformat:2 }} {{ currency.code }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr class="empty-row"><td colspan="6">No lines available for invoicing.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="invoice-total">
+                    <span class="total-label">Total Invoice Amount:</span>
+                    <span class="total-amount" id="invoice-total-amount">0.00 {{ currency.code }}</span>
+                </div>
+
+                <!-- Botones para creación -->
+                <div class="form-actions">
+                    <a href="{% url 'purchases:edit_purchase_order' purchase_order.pk %}" class="btn-cancel">Cancel</a>
+                    <button type="submit" id="submit-inv-btn" class="btn-submit">Confirm Invoice</button>
+                </div>
+
+                <!-- Área de acciones de pago (se muestra después de crear la factura) -->
+                <div id="payment-actions" class="payment-actions">
+                    <div class="payment-message" id="payment-message">✅ Invoice created successfully!</div>
+                    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                        <a href="{% url 'purchases:edit_purchase_order' purchase_order.pk %}" class="btn-cancel">Go Back</a>
+                        <button type="button" id="mark-paid-btn" class="btn-pay">💰 Mark as Paid</button>
+                    </div>
+                </div>
+            {% endif %}
         </form>
     </div>
 </div>
@@ -163,93 +247,161 @@
         const currencyCode = '{{ currency.code }}';
         const paymentActions = document.getElementById('payment-actions');
         const markPaidBtn = document.getElementById('mark-paid-btn');
+        const isExisting = {{ is_existing|lower }};
         let invoiceId = null;
+        {% if is_existing %}
+            invoiceId = '{{ invoice.id_invoice }}';
+            // Si la factura existe y está PENDING, habilitar botón de pago
+            if (document.getElementById('mark-paid-btn')) {
+                markPaidBtn.disabled = false;
+                markPaidBtn.textContent = '💰 Mark as Paid';
+            }
+        {% endif %}
 
-        // Función para actualizar el subtotal de una línea y el total general
-        function updateTotals() {
-            const rows = document.querySelectorAll('.invoice-item-row');
-            let total = 0;
+        // Solo funciones de cálculo y envío si estamos en modo creación
+        if (!isExisting) {
+            // Función para actualizar el subtotal de una línea y el total general
+            function updateTotals() {
+                const rows = document.querySelectorAll('.invoice-item-row');
+                let total = 0;
 
-            rows.forEach(row => {
-                const qtyInput = row.querySelector('.qty-to-invoice');
-                const subtotalCell = row.querySelector('.line-subtotal');
-                const price = parseFloat(row.dataset.price) || 0;
-                const qty = parseFloat(qtyInput.value) || 0;
-                const subtotal = price * qty;
+                rows.forEach(row => {
+                    const qtyInput = row.querySelector('.qty-to-invoice');
+                    const subtotalCell = row.querySelector('.line-subtotal');
+                    const price = parseFloat(row.dataset.price) || 0;
+                    const qty = parseFloat(qtyInput.value) || 0;
+                    const subtotal = price * qty;
 
-                subtotalCell.textContent = subtotal.toFixed(2) + ' ' + currencyCode;
-                total += subtotal;
-            });
+                    subtotalCell.textContent = subtotal.toFixed(2) + ' ' + currencyCode;
+                    total += subtotal;
+                });
 
-            document.getElementById('invoice-total-amount').textContent = total.toFixed(2) + ' ' + currencyCode;
-        }
-
-        // Event listener para actualizar totales al cambiar cantidades
-        document.querySelectorAll('.qty-to-invoice').forEach(input => {
-            input.addEventListener('input', function() {
-                const max = parseFloat(this.getAttribute('max'));
-                let val = parseFloat(this.value) || 0;
-                if (val > max) {
-                    this.value = max;
-                    val = max;
-                }
-                if (val < 0) {
-                    this.value = 0;
-                    val = 0;
-                }
-                updateTotals();
-            });
-
-            input.addEventListener('blur', function() {
-                let val = parseFloat(this.value) || 0;
-                const max = parseFloat(this.getAttribute('max'));
-                if (val > max) this.value = max;
-                if (val < 0) this.value = 0;
-                updateTotals();
-            });
-        });
-
-        // Inicializar totales
-        updateTotals();
-
-        // Función para recoger datos del formulario
-        function collectFormData() {
-            const rows = document.querySelectorAll('.invoice-item-row');
-            const linesData = [];
-            let hasError = false;
-
-            rows.forEach(row => {
-                const linePk = row.dataset.linePk;
-                const qtyInput = row.querySelector('.qty-to-invoice');
-                const qty = parseFloat(qtyInput.value) || 0;
-
-                if (qty > 0) {
-                    linesData.push({
-                        line_pk: linePk,
-                        quantity_to_invoice: qty
-                    });
-                }
-            });
-
-            if (linesData.length === 0) {
-                alert('At least one line must have a quantity to invoice.');
-                hasError = true;
+                document.getElementById('invoice-total-amount').textContent = total.toFixed(2) + ' ' + currencyCode;
             }
 
-            if (hasError) return null;
+            // Event listener para actualizar totales al cambiar cantidades
+            document.querySelectorAll('.qty-to-invoice').forEach(input => {
+                input.addEventListener('input', function() {
+                    const max = parseFloat(this.getAttribute('max'));
+                    let val = parseFloat(this.value) || 0;
+                    if (val > max) {
+                        this.value = max;
+                        val = max;
+                    }
+                    if (val < 0) {
+                        this.value = 0;
+                        val = 0;
+                    }
+                    updateTotals();
+                });
 
-            return {
-                po_pk: poPk,
-                due_date: dueDate.value,
-                lines: linesData
-            };
+                input.addEventListener('blur', function() {
+                    let val = parseFloat(this.value) || 0;
+                    const max = parseFloat(this.getAttribute('max'));
+                    if (val > max) this.value = max;
+                    if (val < 0) this.value = 0;
+                    updateTotals();
+                });
+            });
+
+            // Inicializar totales
+            updateTotals();
+
+            // Función para recoger datos del formulario
+            function collectFormData() {
+                const rows = document.querySelectorAll('.invoice-item-row');
+                const linesData = [];
+                let hasError = false;
+
+                rows.forEach(row => {
+                    const linePk = row.dataset.linePk;
+                    const qtyInput = row.querySelector('.qty-to-invoice');
+                    const qty = parseFloat(qtyInput.value) || 0;
+
+                    if (qty > 0) {
+                        linesData.push({
+                            line_pk: linePk,
+                            quantity_to_invoice: qty
+                        });
+                    }
+                });
+
+                if (linesData.length === 0) {
+                    alert('At least one line must have a quantity to invoice.');
+                    hasError = true;
+                }
+
+                if (hasError) return null;
+
+                return {
+                    po_pk: poPk,
+                    due_date: dueDate.value,
+                    lines: linesData
+                };
+            }
+
+            // Función para enviar la factura
+            async function submitInvoice() {
+                const payload = collectFormData();
+                if (!payload) return;
+
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Processing...';
+
+                try {
+                    const response = await fetch('/purchases/post_purchase_invoice/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(result.error || 'Server error');
+                    }
+
+                    if (result.success) {
+                        invoiceId = result.id_invoice;
+                        // Mostrar área de pago
+                        paymentActions.classList.add('show');
+                        // Ocultar el botón de confirmación y el formulario de edición (opcional)
+                        submitBtn.style.display = 'none';
+                        // Mostrar mensaje
+                        document.getElementById('payment-message').textContent = `✅ Invoice ${invoiceId} created successfully. You can now mark it as paid.`;
+                        // Habilitar botón de pago
+                        markPaidBtn.disabled = false;
+                        markPaidBtn.textContent = '💰 Mark as Paid';
+                        // Desplazar hacia el área de pago
+                        paymentActions.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    } else {
+                        throw new Error(result.error || 'Unknown error');
+                    }
+                } catch (error) {
+                    alert(`Failed to create invoice: ${error.message}`);
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Confirm Invoice';
+                }
+            }
+
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                submitInvoice();
+            });
         }
 
-        // Función para marcar la factura como pagada
+        // Función para marcar la factura como pagada (común para ambos modos)
         async function markInvoicePaid() {
             if (!invoiceId) return;
-            markPaidBtn.disabled = true;
-            markPaidBtn.textContent = 'Processing...';
+            const btn = document.getElementById('mark-paid-btn');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Processing...';
+            }
 
             try {
                 const response = await fetch(`/purchases/mark_invoice_paid/${invoiceId}/`, {
@@ -275,66 +427,26 @@
                 }
             } catch (error) {
                 alert(`Failed to mark as paid: ${error.message}`);
-                markPaidBtn.disabled = false;
-                markPaidBtn.textContent = '💰 Mark as Paid';
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = '💰 Mark as Paid';
+                }
             }
         }
 
-        // Evento para el botón "Mark as Paid"
-        markPaidBtn.addEventListener('click', markInvoicePaid);
-
-        // Función para enviar la factura
-        async function submitInvoice() {
-            const payload = collectFormData();
-            if (!payload) return;
-
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Processing...';
-
-            try {
-                const response = await fetch('/purchases/post_purchase_invoice/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken,
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                const result = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(result.error || 'Server error');
-                }
-
-                if (result.success) {
-                    invoiceId = result.id_invoice;
-                    // Mostrar área de pago
-                    paymentActions.classList.add('show');
-                    // Ocultar el botón de confirmación y el formulario de edición (opcional)
-                    submitBtn.style.display = 'none';
-                    // Mostrar mensaje
-                    document.getElementById('payment-message').textContent = `✅ Invoice ${invoiceId} created successfully. You can now mark it as paid.`;
-                    // Habilitar botón de pago
-                    markPaidBtn.disabled = false;
-                    markPaidBtn.textContent = '💰 Mark as Paid';
-                    // Desplazar hacia el área de pago
-                    paymentActions.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                } else {
-                    throw new Error(result.error || 'Unknown error');
-                }
-            } catch (error) {
-                alert(`Failed to create invoice: ${error.message}`);
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Confirm Invoice';
-            }
+        // Enlazar botón de pago (si existe)
+        if (markPaidBtn) {
+            markPaidBtn.addEventListener('click', markInvoicePaid);
         }
 
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            submitInvoice();
-        });
+        // Si es modo vista y la factura ya está PAID, deshabilitar el botón de pago
+        if (isExisting) {
+            const status = '{{ invoice.status.symbol }}';
+            if (status === 'PAID' && markPaidBtn) {
+                markPaidBtn.disabled = true;
+                markPaidBtn.textContent = '✅ Already Paid';
+            }
+        }
     })();
 </script>
 {% endblock %}

@@ -116,13 +116,13 @@
             <div class="form-actions">
                 <a href="{% url 'purchases:purchase_order_list' %}" class="btn-cancel">Cancel</a>
 
-                <!-- Botón de recepción de mercancías: oculto si la orden está completamente recibida -->
-                {% if purchase_order and purchase_order.order_status.symbol != 'RECEIVED' %}
+                <!-- Botón de recepción de mercancías: oculto si la orden está RECEIVED o CLOSED -->
+                {% if purchase_order and purchase_order.order_status.symbol not in 'RECEIVED,CLOSED'|cut:',' %}
                     <a href="{% url 'purchases:goods_receipt_form' purchase_order.pk %}" class="btn-secondary">📦 Receive Goods</a>
                 {% endif %}
 
-                <!-- Botón de facturación: visible si la orden existe, no está en borrador y NO tiene factura asociada -->
-                {% if purchase_order and purchase_order.order_status.symbol != 'DRAFT' and not purchase_invoice %}
+                <!-- Botón de facturación: visible si la orden existe, no está en borrador, no está cerrada y NO tiene factura asociada -->
+                {% if purchase_order and purchase_order.order_status.symbol != 'DRAFT' and purchase_order.order_status.symbol != 'CLOSED' and not purchase_invoice %}
                     <a href="{% url 'purchases:purchase_invoice_form' purchase_order.pk %}" class="btn-secondary">📄 Create Invoice</a>
                 {% endif %}
 

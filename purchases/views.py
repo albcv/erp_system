@@ -144,6 +144,8 @@ def purchase_order_form(request, pk=None):
         if max_permission < 2:
             return redirect('purchases:purchase_order_list')
 
+        purchase_invoice = PurchaseInvoice.objects.filter(id_purchase_order=purchase_order).first()
+
         # Preparar datos serializables para JSON
         po_data = {
             'id_purchase_order': purchase_order.id_purchase_order,
@@ -188,6 +190,7 @@ def purchase_order_form(request, pk=None):
         'currencies': currencies_list,
         'units': units_list,
         'statuses': OrderStatus.objects.all().order_by('name'),
+        'purchase_invoice': purchase_invoice,
     }
     return render(request, 'purchases/purchase_order_form.html', context)
 
@@ -514,14 +517,43 @@ def purchase_invoice_form(request, po_pk=None):
 
     purchase_order = get_object_or_404(PurchaseOrder, pk=po_pk)
 
-    # Verificar que la orden no esté ya facturada o cerrada
+    # Buscar si ya existe una factura para esta orden
+    existing_invoice = PurchaseInvoice.objects.filter(id_purchase_order=purchase_order).first()
+
+    # Si la orden está CLOSED y no tiene factura, no se puede hacer nada
+    if purchase_order.order_status.symbol == 'CLOSED' and not existing_invoice:
+        messages.warning(request, f"Purchase order {po_pk} is closed and has no invoice.")
+        return redirect('purchases:edit_purchase_order', pk=po_pk)
+
+    # Si ya existe una factura, mostrarla (modo vista)
+    if existing_invoice:
+        # Obtener las líneas de la factura existente
+        invoice_lines = existing_invoice.lines.all().order_by('id')  # usa related_name 'lines'
+        currency = existing_invoice.currency_invoice
+
+        context = {
+            'purchase_order': purchase_order,
+            'invoice': existing_invoice,
+            'invoice_lines': invoice_lines,
+            'currency': currency,
+            'is_existing': True,
+            'total_invoice_amount': existing_invoice.total_amount,
+        }
+        return render(request, 'purchases/purchase_invoice_form.html', context)
+
+    # Si no hay factura, pero la orden está INVOICED, no debería ocurrir (inconsistencia)
+    if purchase_order.order_status.symbol == 'INVOICED' and not existing_invoice:
+        messages.warning(request, f"Inconsistent state: order {po_pk} is INVOICED but no invoice found.")
+        return redirect('purchases:edit_purchase_order', pk=po_pk)
+
+    # Modo creación: la orden no tiene factura y no está CLOSED ni INVOICED
     if purchase_order.order_status.symbol in ['CLOSED', 'INVOICED']:
         messages.warning(request, f"The purchase order {po_pk} is already invoiced or closed. It's not possible to create a new invoice")
         return redirect('purchases:edit_purchase_order', pk=po_pk)
 
+    # Modo creación: mostrar líneas de la orden para facturar
     order_lines = LinesPurchaseOrder.objects.filter(id_purchase_order=purchase_order).order_by('position')
     currency = purchase_order.id_supplier.currency
-
     total_amount = sum(line.quantity * line.price for line in order_lines)
 
     context = {
@@ -529,15 +561,10 @@ def purchase_invoice_form(request, po_pk=None):
         'order_lines': order_lines,
         'currency': currency,
         'total_ordered_amount': total_amount,
+        'is_existing': False,
     }
     return render(request, 'purchases/purchase_invoice_form.html', context)
 
-# ------------------------------------------------------------
-# Procesar factura de compra (vía AJAX POST)
-# ------------------------------------------------------------
-# ------------------------------------------------------------
-# Procesar factura de compra (vía AJAX POST) - CORREGIDO
-# ------------------------------------------------------------
 @csrf_exempt
 @require_POST
 @transaction.atomic
@@ -558,10 +585,6 @@ def post_purchase_invoice(request):
         if purchase_order.order_status.symbol in ['CLOSED', 'INVOICED']:
             return JsonResponse({'error': f'Purchase order {po_pk} is already invoiced or closed.'}, status=400)
 
-        # --- NUEVA GENERACIÓN DE ID: usar el id autoincremental de Django ---
-        # 1. Crear la factura SIN id_invoice (Django asignará el id autoincremental)
-        # 2. Luego actualizar id_invoice con el id formateado
-
         # Estado de la factura (asumimos que existe "PENDING")
         invoice_status_pending, _ = InvoiceStatus.objects.get_or_create(
             symbol="PENDING",
@@ -571,7 +594,7 @@ def post_purchase_invoice(request):
         total_amount = 0
         invoiced_lines = []
 
-        # Primera pasada: calcular total y preparar líneas (sin guardar)
+        # Calcular total y preparar líneas (sin guardar)
         for i, line_data in enumerate(lines_data, start=1):
             po_line = get_object_or_404(LinesPurchaseOrder, pk=line_data['line_pk'])
             qty_to_invoice = int(line_data['quantity_to_invoice'])
@@ -582,7 +605,6 @@ def post_purchase_invoice(request):
             line_total = qty_to_invoice * po_line.price
             total_amount += line_total
 
-            # Guardamos los datos de la línea temporalmente (sin ID de factura)
             line_data_dict = {
                 'po_line': po_line,
                 'qty': qty_to_invoice,
@@ -595,7 +617,7 @@ def post_purchase_invoice(request):
         if total_amount == 0:
             return JsonResponse({'error': 'Total amount is zero. Check quantities.'}, status=400)
 
-        # Crear la factura sin id_invoice
+        # Crear la factura sin id_invoice (Django asigna id autoincremental)
         purchase_invoice = PurchaseInvoice(
             id_purchase_order=purchase_order,
             due_date=due_date,
@@ -604,14 +626,14 @@ def post_purchase_invoice(request):
             status=invoice_status_pending,
             created_by=request.user,
         )
-        purchase_invoice.save()  # Django asigna el id autoincremental
+        purchase_invoice.save()  # Django asigna el id
 
-        # Ahora asignar id_invoice basado en el id de Django
+        # Asignar id_invoice basado en el id de Django
         next_invoice_id = str(purchase_invoice.id).zfill(10)
         purchase_invoice.id_invoice = next_invoice_id
         purchase_invoice.save(update_fields=['id_invoice'])
 
-        # Crear las líneas de factura con el id_invoice ya asignado
+        # Crear líneas de factura
         for idx, line_data in enumerate(invoiced_lines, start=1):
             line_invoice_id = f"{next_invoice_id}-{str(idx).zfill(3)}"
             invoice_line = LinesPurchaseInvoice(
@@ -625,7 +647,16 @@ def post_purchase_invoice(request):
             )
             invoice_line.save()
 
-        # Asientos contables (usar get_or_create para evitar errores si no existen)
+        # --- ACTUALIZAR ESTADO DE LA ORDEN ---
+        status_invoiced, _ = OrderStatus.objects.get_or_create(
+            symbol="INVOICED",
+            defaults={'name': 'Invoiced', 'created_by': request.user}
+        )
+        # Solo cambiar si no está ya en CLOSED o INVOICED (ya verificamos que no lo está)
+        purchase_order.order_status = status_invoiced
+        purchase_order.save()
+
+        # Asientos contables (sin cambios)
         purchase_account, _ = AccountAccount.objects.get_or_create(
             code='1200',
             defaults={
@@ -655,7 +686,6 @@ def post_purchase_invoice(request):
 
         group_id = purchase_invoice.id_invoice
 
-        # Asiento de débito (compra)
         Journal.objects.create(
             id_journal=f"INV-{group_id}-D1",
             group_journal=group_id,
@@ -667,7 +697,6 @@ def post_purchase_invoice(request):
             created_by=request.user
         )
 
-        # Asiento de crédito (pago desde banco)
         Journal.objects.create(
             id_journal=f"INV-{group_id}-C1",
             group_journal=group_id,
@@ -678,26 +707,6 @@ def post_purchase_invoice(request):
             currency=purchase_order.id_supplier.currency,
             created_by=request.user
         )
-
-        # Actualizar estado de la orden de compra
-        status_received, _ = OrderStatus.objects.get_or_create(
-            symbol="RECEIVED",
-            defaults={'name': 'Received', 'created_by': request.user}
-        )
-        status_closed, _ = OrderStatus.objects.get_or_create(
-            symbol="CLOSED",
-            defaults={'name': 'Closed', 'created_by': request.user}
-        )
-        status_invoiced, _ = OrderStatus.objects.get_or_create(
-            symbol="INVOICED",
-            defaults={'name': 'Invoiced', 'created_by': request.user}
-        )
-
-        if purchase_order.order_status.symbol == status_received.symbol:
-            purchase_order.order_status = status_closed
-        else:
-            purchase_order.order_status = status_invoiced
-        purchase_order.save()
 
         response_data = {
             'success': True,
@@ -718,8 +727,73 @@ def post_purchase_invoice(request):
 @login_required
 def mark_invoice_paid(request, invoice_id):
     invoice = get_object_or_404(PurchaseInvoice, id_invoice=invoice_id)
-    # Cambiar estado a PAID
-    paid_status, _ = InvoiceStatus.objects.get_or_create(symbol="PAID", defaults={'name': 'Paid'})
+
+    # Si la factura ya está PAID, no hacer nada (o devolver error)
+    if invoice.status.symbol == 'PAID':
+        return JsonResponse({'error': 'Invoice already paid.'}, status=400)
+
+    # Cambiar estado de la factura a PAID
+    paid_status, _ = InvoiceStatus.objects.get_or_create(
+        symbol="PAID",
+        defaults={'name': 'Paid', 'created_by': request.user}
+    )
     invoice.status = paid_status
     invoice.save()
-    return JsonResponse({'success': True, 'redirect_url': f'/purchases/edit/{invoice.id_purchase_order.pk}/'})
+
+    # --- ACTUALIZAR ESTADO DE LA ORDEN (CERRAR SI ESTÁ RECEIVED O INVOICED) ---
+    purchase_order = invoice.id_purchase_order
+    status_closed, _ = OrderStatus.objects.get_or_create(
+        symbol="CLOSED",
+        defaults={'name': 'Closed', 'created_by': request.user}
+    )
+    status_received, _ = OrderStatus.objects.get_or_create(
+        symbol="RECEIVED",
+        defaults={'name': 'Received', 'created_by': request.user}
+    )
+    status_invoiced, _ = OrderStatus.objects.get_or_create(
+        symbol="INVOICED",
+        defaults={'name': 'Invoiced', 'created_by': request.user}
+    )
+
+   
+    if purchase_order.order_status.symbol in ['RECEIVED', 'INVOICED']:
+        purchase_order.order_status = status_closed
+        purchase_order.save()
+
+    return JsonResponse({
+        'success': True,
+        'redirect_url': f'/purchases/edit/{purchase_order.pk}/'
+    })
+
+
+@login_required
+def mark_invoice_paid(request, invoice_id):
+    invoice = get_object_or_404(PurchaseInvoice, id_invoice=invoice_id)
+    
+    # Si la factura ya está PAID, devolver error
+    if invoice.status.symbol == 'PAID':
+        return JsonResponse({'error': 'Invoice already paid.'}, status=400)
+
+    # Cambiar estado de la factura a PAID
+    paid_status, _ = InvoiceStatus.objects.get_or_create(
+        symbol="PAID",
+        defaults={'name': 'Paid', 'created_by': request.user}
+    )
+    invoice.status = paid_status
+    invoice.save()
+
+    # Cerrar la orden de compra asociada
+    purchase_order = invoice.id_purchase_order
+    status_closed, _ = OrderStatus.objects.get_or_create(
+        symbol="CLOSED",
+        defaults={'name': 'Closed', 'created_by': request.user}
+    )
+   
+    if purchase_order.order_status.symbol != 'CLOSED':
+        purchase_order.order_status = status_closed
+        purchase_order.save()
+
+    return JsonResponse({
+        'success': True,
+        'redirect_url': f'/purchases/edit/{purchase_order.pk}/'
+    })
