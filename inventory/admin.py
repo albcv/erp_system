@@ -13,4 +13,4 @@ class LocationInventoryAdmin(admin.ModelAdmin):
 
 @admin.register(InventoryMovement)
 class InventoryMovementAdmin(admin.ModelAdmin):
-    list_display = ('id_inventory_movement', 'id_location', 'id_material', 'quantity', 'unit_type', 'movement_type')
+    list_display = ('id_inventory_movement', 'id_location', 'id_material', 'quantity', 'unit_type', 'movement_type', 'price', 'currency', 'exchange_rate')

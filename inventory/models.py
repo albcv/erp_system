@@ -58,6 +58,8 @@ class InventoryMovement(models.Model):
     unit_type = models.ForeignKey(Unit, verbose_name="Unit Type", on_delete=models.PROTECT)
     movement_type = models.ForeignKey(MovementType, on_delete=models.PROTECT, verbose_name="Movement ID")
 
+    exchange_rate = models.DecimalField(max_digits=18, decimal_places=6, default=1.0, verbose_name='Exchange Rate')
+
     price = models.FloatField(verbose_name='Price', default=0.0)
     currency = models.ForeignKey(Currency, on_delete=models.PROTECT, verbose_name='Currency')
 

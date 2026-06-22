@@ -1,12 +1,19 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from users.models import UserRole
+from django.conf import settings
+from datetime import date, timedelta
+import requests
+import threading
+from .models import ExchangeRate, Currency
 
 # Create your views here.
 
 
 @login_required
 def dashboard_view(request):
+
+    threading.Thread(target=update_exchange_rates, daemon=True).start()
 
     user_roles = UserRole.objects.filter(user_id=request.user)
 
@@ -39,4 +46,80 @@ def dashboard_view(request):
     }
 
     return render(request, 'core/dashboard.html', context)
-    
+
+
+
+def update_exchange_rates():
+    try:
+        base_currency_code = getattr(settings, 'BASE_CURRENCY', 'USD')
+        today = date.today()
+        currencies_in_erp = {c.code: c for c in Currency.objects.all()}
+
+        # Obtener la última fecha registrada (ordenada por fecha descendente)
+        last_rate = ExchangeRate.objects.order_by('-date').first()
+        if not last_rate:
+            start_date = today - timedelta(days=1)
+        else:
+            start_date = last_rate.date + timedelta(days=1)
+            if start_date > today:
+                return  # Ya actualizado
+
+        # Construir URL según si es una fecha única o un rango
+        if start_date == today:
+            url = f"https://api.frankfurter.dev/v1/{start_date.isoformat()}?base={base_currency_code}"
+        else:
+            url = f"https://api.frankfurter.dev/v1/{start_date.isoformat()}..{today.isoformat()}?base={base_currency_code}"
+
+        response = requests.get(url, timeout=10)
+        if response.status_code != 200:
+            return
+
+        data = response.json()
+        rates_data = data.get('rates', {})
+        if not rates_data:
+            return
+
+        # Detectar si es un rango (los valores de rates_data son diccionarios)
+        first_value = next(iter(rates_data.values()), None)
+        is_range = isinstance(first_value, dict)
+
+        if is_range:
+            # Para cada fecha en el rango
+            for date_str, rates in rates_data.items():
+                # Actualizar cada moneda para esta fecha
+                for code, rate_value in rates.items():
+                    if code in currencies_in_erp:
+                        ExchangeRate.objects.update_or_create(
+                            currency=currencies_in_erp[code],
+                            date=date_str,
+                            defaults={'rate': rate_value}
+                        )
+                # Actualizar la moneda base para esta fecha (si existe en ERP)
+                if base_currency_code in currencies_in_erp:
+                    ExchangeRate.objects.update_or_create(
+                        currency=currencies_in_erp[base_currency_code],
+                        date=date_str,
+                        defaults={'rate': 1.0}
+                    )
+        else:
+            # Fecha única
+            target_date = data.get('date')
+            if not target_date:
+                return
+            for code, rate_value in rates_data.items():
+                if code in currencies_in_erp:
+                    ExchangeRate.objects.update_or_create(
+                        currency=currencies_in_erp[code],
+                        date=target_date,
+                        defaults={'rate': rate_value}
+                    )
+            if base_currency_code in currencies_in_erp:
+                ExchangeRate.objects.update_or_create(
+                    currency=currencies_in_erp[base_currency_code],
+                    date=target_date,
+                    defaults={'rate': 1.0}
+                )
+
+    except Exception as e:
+        # En producción, usa logging en lugar de print
+        print(f"Error updating exchange rates: {e}")

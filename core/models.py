@@ -72,3 +72,23 @@ class Currency(models.Model):
 
     def __str__(self):
         return f"{self.code} - {self.name}"
+    
+
+class ExchangeRate(models.Model):
+
+    currency = models.ForeignKey(Currency, on_delete=models.CASCADE, related_name='exchange_rates', verbose_name="Currency")
+    date = models.DateField(verbose_name="Date")
+    rate = models.DecimalField(max_digits=18, decimal_places=6, verbose_name='Exchange Rate')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+      verbose_name="Exchange Rate"
+      verbose_name_plural="Exchange Rates"
+      unique_together = ('currency', 'date')
+      ordering = ['-date']
+
+    def __str__(self):
+      return f"{self.currency.symbol} - {self.date}: {self.rate}"
+   

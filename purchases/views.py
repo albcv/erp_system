@@ -15,7 +15,7 @@ from django.db.models import Q
 from .models import PurchaseOrder, LinesPurchaseOrder, OrderStatus, PurchaseInvoice, InvoiceStatus, LinesPurchaseInvoice
 from suppliers.models import Supplier
 from materials.models import Material, Unit
-from core.models import Currency
+from core.models import Currency, ExchangeRate
 from users.models import UserRole
 from inventory.models import LocationInventory, InventoryMovement, MovementType
 from .models import GoodsReceipt, LinesGoodsReceipt, GoodsReceiptStatus
@@ -376,13 +376,35 @@ def post_goods_receipt(request):
         data = json.loads(request.body)
 
         po_pk = data.get('po_pk')
-        receipt_date = data.get('receipt_date')
+        receipt_date_str = data.get('receipt_date')
         lines_data = data.get('lines', [])
 
         if not lines_data:
             return JsonResponse({'error': 'Must receive at least 1 quantity.'}, status=400)
 
         purchase_order = get_object_or_404(PurchaseOrder, pk=po_pk)
+
+        # Convertir receipt_date a objeto date para la búsqueda de tasa de cambio
+        try:
+            receipt_date = datetime.strptime(receipt_date_str, '%Y-%m-%d').date()
+        except (TypeError, ValueError):
+            # Si no se proporciona o es inválida, usar la fecha actual
+            receipt_date = datetime.now().date()
+
+        # Obtener el tipo de cambio al momento de la recepción
+        rate_obj = ExchangeRate.objects.filter(
+            currency=purchase_order.id_supplier.currency,
+            date__lte=receipt_date
+        ).order_by('-date').first()
+
+        if rate_obj:
+            current_exchange_rate = rate_obj.rate
+        else:
+            current_exchange_rate = 1.0
+            logger.warning(
+                f"No exchange rate found for {purchase_order.id_supplier.currency.symbol} "
+                f"on {receipt_date}. Using 1.0."
+            )
 
         # Asegurar que existe un MovementType con símbolo 'PUR'
         movement_type_pur, _ = MovementType.objects.get_or_create(
@@ -433,8 +455,7 @@ def post_goods_receipt(request):
             if received_qty > available_to_receive:
                 raise ValueError(f"Over reception in line {po_line.position}. Ordered: {po_line.quantity}, Already received: {po_line.receive_quantity}, Trying to receive: {received_qty}")
 
-            # --- NUEVA GENERACIÓN DE ID DE MOVIMIENTO ---
-            # 1. Crear el movimiento sin id_inventory_movement (Django asigna id automático)
+            # Crear movimiento de inventario con tipo de cambio
             inventory_movement = InventoryMovement(
                 id_location=location,
                 id_material=po_line.id_material,
@@ -443,11 +464,12 @@ def post_goods_receipt(request):
                 movement_type=movement_type_pur,
                 price=po_line.price,
                 currency=po_line.currency_supplier,
+                exchange_rate=current_exchange_rate,
                 created_by=request.user,
             )
-            inventory_movement.save()  # Django asigna el id autoincremental
+            inventory_movement.save()
 
-            # 2. Asignar id_inventory_movement basado en el id recién creado
+            # Asignar id_inventory_movement basado en el id recién creado
             inventory_movement.id_inventory_movement = f"GR-{inventory_movement.id}"
             inventory_movement.save(update_fields=['id_inventory_movement'])
 
@@ -501,7 +523,6 @@ def post_goods_receipt(request):
     except Exception as e:
         print(f"CRITICAL ERROR: {e}")
         return JsonResponse({'error': f'An unexpected server error occurred: {str(e)}'}, status=500)
-
 # ------------------------------------------------------------
 # Formulario de facturación de compras
 # ------------------------------------------------------------
