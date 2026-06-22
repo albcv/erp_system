@@ -176,6 +176,9 @@ def purchase_order_form(request, pk=None):
     currencies_qs = Currency.objects.all().order_by('code')
     currencies_list = [{'code': c.code, 'name': c.name} for c in currencies_qs]
 
+    units_qs = Unit.objects.all().order_by('symbol')
+    units_list = [{'symbol': u.symbol, 'name': u.name} for u in units_qs]
+
     context = {
         'title': 'Edit Purchase Order' if purchase_order else 'Create New Purchase Order',
         'purchase_order': purchase_order,
@@ -183,9 +186,32 @@ def purchase_order_form(request, pk=None):
         'purchase_order_json': purchase_order_json,
         'lines_json': lines_json,
         'currencies': currencies_list,
+        'units': units_list,
         'statuses': OrderStatus.objects.all().order_by('name'),
     }
     return render(request, 'purchases/purchase_order_form.html', context)
+
+
+def generate_po_number():
+    """
+    Genera un ID de orden de compra con formato: PO-YYYY-NNNN
+    Ejemplo: PO-2024-001, PO-2024-002, ... (reinicia cada año)
+    """
+    year = datetime.now().year 
+    prefix = f"PO-{year}-"
+    # Obtener el último número del año actual
+    last_po = PurchaseOrder.objects.filter(
+        id_purchase_order__startswith=prefix
+    ).order_by('id_purchase_order').last()
+    
+    if last_po:
+        # Extraer el número del último ID (ej. "PO-2024-001" -> "001")
+        last_number = int(last_po.id_purchase_order.split('-')[-1])
+        next_number = last_number + 1
+    else:
+        next_number = 1
+    
+    return f"{prefix}{str(next_number).zfill(3)}"
 
 # ------------------------------------------------------------
 # Crear orden de compra (vía AJAX POST)
@@ -225,10 +251,8 @@ def create_purchase_order(request):
             return JsonResponse({'error': 'Invalid date format. Use YYYY-MM-DD.'}, status=400)
 
         if not edit_mode:
-            max_id_result = PurchaseOrder.objects.aggregate(max_id=Max('id_purchase_order'))
-            last_id_str = max_id_result.get('max_id')
-            next_po_number = int(last_id_str) + 1 if last_id_str and last_id_str.isdigit() else 1
-            next_po_id = str(next_po_number)
+            # GENERAR ID CON FORMATO PERSONALIZADO
+            next_po_id = generate_po_number()
             purchase_order = PurchaseOrder.objects.create(
                 id_purchase_order=next_po_id,
                 id_supplier=supplier,
@@ -340,9 +364,6 @@ def goods_receipt_form(request, po_pk=None):
     }
     return render(request, 'purchases/goods_receipt_form.html', context)
 
-# ------------------------------------------------------------
-# Procesar recepción de mercancías (vía AJAX POST)
-# ------------------------------------------------------------
 @csrf_exempt
 @require_POST
 @transaction.atomic
@@ -360,15 +381,19 @@ def post_goods_receipt(request):
 
         purchase_order = get_object_or_404(PurchaseOrder, pk=po_pk)
 
-        # Asegurar que existe un MovementType con símbolo 'PUR' (o el que uses)
+        # Asegurar que existe un MovementType con símbolo 'PUR'
         movement_type_pur, _ = MovementType.objects.get_or_create(
             symbol='PUR',
             defaults={'name': 'Purchase Receipt', 'created_by': request.user}
         )
 
-        # Generar ID de recepción usando el autoincrement id (más seguro)
-        last_gr = GoodsReceipt.objects.order_by('-id').first()
-        next_gr_number = (last_gr.id + 1) if last_gr else 1
+        # Generar ID de recepción usando el máximo id_goods_receipt
+        max_id_result = GoodsReceipt.objects.aggregate(max_id=Max('id_goods_receipt'))
+        last_id_str = max_id_result.get('max_id')
+        if last_id_str and last_id_str.isdigit():
+            next_gr_number = int(last_id_str) + 1
+        else:
+            next_gr_number = 1
         next_gr_id = str(next_gr_number).zfill(10)
 
         # Obtener estado "COMPLETED" (crearlo si no existe)
@@ -405,9 +430,9 @@ def post_goods_receipt(request):
             if received_qty > available_to_receive:
                 raise ValueError(f"Over reception in line {po_line.position}. Ordered: {po_line.quantity}, Already received: {po_line.receive_quantity}, Trying to receive: {received_qty}")
 
-            # Crear movimiento de inventario
-            inventory_movement = InventoryMovement.objects.create(
-                id_inventory_movement=f"GR-{next_gr_id}-{i}",
+            # --- NUEVA GENERACIÓN DE ID DE MOVIMIENTO ---
+            # 1. Crear el movimiento sin id_inventory_movement (Django asigna id automático)
+            inventory_movement = InventoryMovement(
                 id_location=location,
                 id_material=po_line.id_material,
                 quantity=received_qty,
@@ -417,6 +442,11 @@ def post_goods_receipt(request):
                 currency=po_line.currency_supplier,
                 created_by=request.user,
             )
+            inventory_movement.save()  # Django asigna el id autoincremental
+
+            # 2. Asignar id_inventory_movement basado en el id recién creado
+            inventory_movement.id_inventory_movement = f"GR-{inventory_movement.id}"
+            inventory_movement.save(update_fields=['id_inventory_movement'])
 
             line_gr_id = f"{next_gr_id}-{str(i).zfill(3)}"
             LinesGoodsReceipt.objects.create(
@@ -424,10 +454,10 @@ def post_goods_receipt(request):
                 id_goods_receipt=goods_receipt,
                 id_purchase_order_line=po_line,
                 id_material=po_line.id_material,
-                receive_quantity=received_qty,                
+                receive_quantity=received_qty,
                 unit_material=po_line.unit_material,
                 id_location=location,
-                inventory_movement_ref=inventory_movement.id_inventory_movement,  
+                inventory_movement_ref=inventory_movement.id_inventory_movement,
                 created_by=request.user,
             )
 
@@ -505,6 +535,9 @@ def purchase_invoice_form(request, po_pk=None):
 # ------------------------------------------------------------
 # Procesar factura de compra (vía AJAX POST)
 # ------------------------------------------------------------
+# ------------------------------------------------------------
+# Procesar factura de compra (vía AJAX POST) - CORREGIDO
+# ------------------------------------------------------------
 @csrf_exempt
 @require_POST
 @transaction.atomic
@@ -525,14 +558,9 @@ def post_purchase_invoice(request):
         if purchase_order.order_status.symbol in ['CLOSED', 'INVOICED']:
             return JsonResponse({'error': f'Purchase order {po_pk} is already invoiced or closed.'}, status=400)
 
-        # Generar ID de factura
-        max_id_result = PurchaseInvoice.objects.aggregate(max_id=Max('id_invoice'))
-        last_id_str = max_id_result.get('max_id')
-        if last_id_str and last_id_str.isdigit():
-            next_invoice_number = int(last_id_str) + 1
-        else:
-            next_invoice_number = 1
-        next_invoice_id = str(next_invoice_number).zfill(10)
+        # --- NUEVA GENERACIÓN DE ID: usar el id autoincremental de Django ---
+        # 1. Crear la factura SIN id_invoice (Django asignará el id autoincremental)
+        # 2. Luego actualizar id_invoice con el id formateado
 
         # Estado de la factura (asumimos que existe "PENDING")
         invoice_status_pending, _ = InvoiceStatus.objects.get_or_create(
@@ -543,7 +571,7 @@ def post_purchase_invoice(request):
         total_amount = 0
         invoiced_lines = []
 
-        # Procesar líneas
+        # Primera pasada: calcular total y preparar líneas (sin guardar)
         for i, line_data in enumerate(lines_data, start=1):
             po_line = get_object_or_404(LinesPurchaseOrder, pk=line_data['line_pk'])
             qty_to_invoice = int(line_data['quantity_to_invoice'])
@@ -554,35 +582,48 @@ def post_purchase_invoice(request):
             line_total = qty_to_invoice * po_line.price
             total_amount += line_total
 
-            line_invoice_id = f"{next_invoice_id}-{str(i).zfill(3)}"
-            invoice_line = LinesPurchaseInvoice(
-                id_invoice_line=line_invoice_id,
-                id_purchase_order_line=po_line,
-                price=po_line.price,
-                quantity=qty_to_invoice,
-                currency_invoice_line=po_line.currency_supplier,   # ← CORREGIDO
-                created_by=request.user,
-            )
-            invoiced_lines.append(invoice_line)
+            # Guardamos los datos de la línea temporalmente (sin ID de factura)
+            line_data_dict = {
+                'po_line': po_line,
+                'qty': qty_to_invoice,
+                'price': po_line.price,
+                'currency': po_line.currency_supplier,
+                'position': i,
+            }
+            invoiced_lines.append(line_data_dict)
 
         if total_amount == 0:
             return JsonResponse({'error': 'Total amount is zero. Check quantities.'}, status=400)
 
-        # Crear la factura
-        purchase_invoice = PurchaseInvoice.objects.create(
-            id_invoice=next_invoice_id,
+        # Crear la factura sin id_invoice
+        purchase_invoice = PurchaseInvoice(
             id_purchase_order=purchase_order,
             due_date=due_date,
             total_amount=total_amount,
             currency_invoice=purchase_order.id_supplier.currency,
-            status=invoice_status_pending,   # ← usar InvoiceStatus
+            status=invoice_status_pending,
             created_by=request.user,
         )
+        purchase_invoice.save()  # Django asigna el id autoincremental
 
-        # Guardar líneas de la factura
-        for line in invoiced_lines:
-            line.id_purchase_invoice = purchase_invoice
-            line.save()
+        # Ahora asignar id_invoice basado en el id de Django
+        next_invoice_id = str(purchase_invoice.id).zfill(10)
+        purchase_invoice.id_invoice = next_invoice_id
+        purchase_invoice.save(update_fields=['id_invoice'])
+
+        # Crear las líneas de factura con el id_invoice ya asignado
+        for idx, line_data in enumerate(invoiced_lines, start=1):
+            line_invoice_id = f"{next_invoice_id}-{str(idx).zfill(3)}"
+            invoice_line = LinesPurchaseInvoice(
+                id_invoice_line=line_invoice_id,
+                id_purchase_invoice=purchase_invoice,
+                id_purchase_order_line=line_data['po_line'],
+                price=line_data['price'],
+                quantity=line_data['qty'],
+                currency_invoice_line=line_data['currency'],
+                created_by=request.user,
+            )
+            invoice_line.save()
 
         # Asientos contables (usar get_or_create para evitar errores si no existen)
         purchase_account, _ = AccountAccount.objects.get_or_create(

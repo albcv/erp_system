@@ -147,6 +147,7 @@
 {% endif %}
 
 {{ currencies|json_script:"currencies-list" }}
+{{ units|json_script:"units-list" }}
 
 <script>
     (function () {
@@ -165,6 +166,7 @@
 
         const supplierFields = ['name', 'address', 'city', 'state_province', 'country', 'payment_terms', 'payment_method'];
 
+        // --- Generar opciones de monedas desde el backend ---
         let currencyOptionsHtml = '<option value="">--</option>';
         const currenciesElement = document.getElementById('currencies-list');
         if (currenciesElement) {
@@ -179,6 +181,23 @@
             }
         } else {
             currencyOptionsHtml = '<option value="">--</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option>';
+        }
+
+        // --- Generar opciones de unidades desde el backend ---
+        let unitOptionsHtml = '<option value="">--</option>';
+        const unitsElement = document.getElementById('units-list');
+        if (unitsElement) {
+            try {
+                const units = JSON.parse(unitsElement.textContent);
+                units.forEach(unit => {
+                    unitOptionsHtml += `<option value="${unit.symbol}">${unit.symbol}</option>`;
+                });
+            } catch (e) {
+                console.error("Error parsing units JSON:", e);
+                unitOptionsHtml = '<option value="">--</option><option value="KG">KG</option><option value="P">P</option><option value="M2">M2</option><option value="LT">LT</option>';
+            }
+        } else {
+            unitOptionsHtml = '<option value="">--</option><option value="KG">KG</option><option value="P">P</option><option value="M2">M2</option><option value="LT">LT</option>';
         }
 
         async function fetchJSON(url, errorContext) {
@@ -259,7 +278,7 @@
                 <td><input type="text" class="material-id" placeholder="Material ID" style="width:100px"></td>
                 <td><input type="text" class="material-description" readonly placeholder="Description" style="width:150px"></td>
                 <td><input type="number" class="quantity" placeholder="Qty" step="any" style="width:80px"></td>
-                <td><select class="unit-select" style="width:80px"><option value="">--</option><option value="KG">KG</option><option value="P">P</option><option value="M2">M2</option><option value="LT">LT</option></select></td>
+                <td><select class="unit-select" style="width:80px">${unitOptionsHtml}</select></td>
                 <td><input type="number" class="price" placeholder="Price" step="any" style="width:100px"></td>
                 <td><select class="currency-select" style="width:70px">${currencyOptionsHtml}</select></td>
                 <td><button type="button" class="remove-row-btn btn-danger">✖</button></td>
