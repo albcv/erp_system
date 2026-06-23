@@ -5,6 +5,7 @@ from materials.models import Material, Unit
 from core.models import Currency
 from inventory.models import LocationInventory
 
+
 class OrderStatus(models.Model):
 
    name = models.CharField(verbose_name='Name', max_length=200)
@@ -194,4 +195,5 @@ class LinesPurchaseInvoice(models.Model):
         return self.id_invoice_line
    
 
-    
+
+  

@@ -48,6 +48,11 @@
 
 <img src="img/purchase_invoice.png" alt="Formulario para crear un recibo de compra">
 
+### Gestión de Inventario
+
+<img src="img/inventory_movement_list.png" alt="Formulario para crear un recibo de compra">
+
+
 ### Panel de administración
 <img src="img/panel_admin.png" alt="Gestión de usuarios">
 

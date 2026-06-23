@@ -1,0 +1,100 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Stock List{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/list.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="list-container">
+    <div class="filters-card">
+        <form method="get" action="{% url 'inventory:stock_list' %}">
+            <div class="filter-grid">
+                <div class="filter-field">
+                    <label>Date</label>
+                    <input type="date" name="date" value="{{ current_date }}">
+                </div>
+                <div class="filter-field">
+                    <label>Location</label>
+                    <select name="location">
+                        <option value="">All</option>
+                        {% for loc in locations %}
+                        <option value="{{ loc.pk }}" {% if request.GET.location == loc.pk|stringformat:"s" %}selected{% endif %}>
+                            {{ loc.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button type="submit" class="btn-filter">Filter</button>
+                <a href="{% url 'inventory:stock_list' %}" class="btn-clear">Clear</a>
+                <a href="?export=csv{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="btn-export">📎 Export to CSV</a>
+                <a href="{% url 'inventory:movement_list' %}" class="btn-create">📦 Inventory Movements</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="record-count">
+        Showing {{ page_obj.start_index }} - {{ page_obj.end_index }} of {{ page_obj.paginator.count }} stock entries
+    </div>
+
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Location</th>
+                    <th>Material</th>
+                    <th>Quantity</th>
+                    <th>Unit</th>
+                    <th>AVG Price (USD)</th>
+                    <th>Total Value (USD)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in page_obj %}
+                <tr>
+                    <td>{{ s.date|date:"Y-m-d" }}</td>
+                    <td>{{ s.id_location.name }}</td>
+                    <td>{{ s.id_material.name }}</td>
+                    <td>{{ s.quantity }}</td>
+                    <td>{{ s.unit_type.symbol }}</td>
+                    <td>{{ s.avg_price_usd }}</td>
+                    <td>{{ s.total_value_usd }}</td>
+                </tr>
+                {% empty %}
+                <tr class="empty-row"><td colspan="7">No stock records found for this date.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="pagination-wrapper">
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+                <a href="?page=1&date={{ request.GET.date }}&location={{ request.GET.location }}">First</a>
+                <a href="?page={{ page_obj.previous_page_number }}&date={{ request.GET.date }}&location={{ request.GET.location }}">Previous</a>
+            {% endif %}
+
+            {% for i in page_obj.paginator.page_range %}
+                {% if page_obj.number == i %}
+                    <span class="current">{{ i }}</span>
+                {% else %}
+                    <a href="?page={{ i }}&date={{ request.GET.date }}&location={{ request.GET.location }}">{{ i }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}&date={{ request.GET.date }}&location={{ request.GET.location }}">Next</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}&date={{ request.GET.date }}&location={{ request.GET.location }}">Last</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

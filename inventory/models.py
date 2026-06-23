@@ -3,7 +3,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from core.models import Status, Currency
 from materials.models import Material, Unit
-
+from datetime import date
 
 
 # Create your models here.
@@ -73,3 +73,29 @@ class InventoryMovement(models.Model):
 
     def __str__(self):
         return f"{self.id_inventory_movement} - {self.movement_type.name} {self.quantity} {self.unit_type.symbol} of {self.id_material.name} at {self.id_location.name}"
+    
+
+
+class Stock(models.Model):
+
+    id_location = models.ForeignKey(LocationInventory, on_delete=models.CASCADE, verbose_name='ID Location')
+    id_material = models.ForeignKey(Material, on_delete=models.CASCADE, verbose_name='ID Material')
+    date = models.DateField(default=date.today, verbose_name='Journal Date')
+    quantity = models.IntegerField(default=0, verbose_name='Quantity')
+    unit_type = models.ForeignKey(Unit, verbose_name="Unit Type", on_delete=models.PROTECT)
+
+    avg_price_usd = models.DecimalField(max_digits=18, decimal_places=6, default=0.0)
+    total_value_usd = models.DecimalField(max_digits=18, decimal_places=4, default=0.0)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+  
+
+    class Meta:
+        verbose_name = "Stock"
+        verbose_name_plural = "Stocks"
+        unique_together = ('date', 'id_location', 'id_material')
+
+    def save(self, *args, **kwargs):
+       self.total_value_usd = float(self.quantity)*float(self.avg_price_usd)
+       super().save(*args, **kwargs)

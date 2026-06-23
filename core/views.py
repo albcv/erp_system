@@ -6,15 +6,18 @@ from datetime import date, timedelta
 import requests
 import threading
 from .models import ExchangeRate, Currency
+from inventory.views import sync_daily_stock
 
-# Create your views here.
+def run_maintenance_tasks():
+    update_exchange_rates()
+    sync_daily_stock()
 
 
 @login_required
 def dashboard_view(request):
 
-    threading.Thread(target=update_exchange_rates, daemon=True).start()
-
+    threading.Thread(target=run_maintenance_tasks, daemon=True).start()
+    
     user_roles = UserRole.objects.filter(user_id=request.user)
 
     permissions = {

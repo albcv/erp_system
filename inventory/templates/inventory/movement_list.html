@@ -1,0 +1,134 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Inventory Movements{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/list.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="list-container">
+    <div class="filters-card">
+        <form method="get" action="{% url 'inventory:movement_list' %}">
+            <div class="filter-grid">
+                <div class="filter-field">
+                    <label>Location</label>
+                    <select name="location">
+                        <option value="">All</option>
+                        {% for loc in locations %}
+                        <option value="{{ loc.pk }}" {% if request.GET.location == loc.pk|stringformat:"s" %}selected{% endif %}>
+                            {{ loc.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <label>Movement Type</label>
+                    <select name="type">
+                        <option value="">All</option>
+                        {% for mt in mov_types %}
+                        <option value="{{ mt.pk }}" {% if request.GET.type == mt.pk|stringformat:"s" %}selected{% endif %}>
+                            {{ mt.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <label>Date From</label>
+                    <input type="date" name="date_from" value="{{ request.GET.date_from }}">
+                </div>
+                <div class="filter-field">
+                    <label>Date To</label>
+                    <input type="date" name="date_to" value="{{ request.GET.date_to }}">
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button type="submit" class="btn-filter">Filter</button>
+                <a href="{% url 'inventory:movement_list' %}" class="btn-clear">Clear</a>
+                <a href="?export=csv{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="btn-export">📎 Export to CSV</a>
+                {% if permissions.inventory == 2 %}
+                    <a href="{% url 'inventory:create_movement' %}" class="btn-create">➕ Create Movement</a>
+                {% endif %}
+                <a href="{% url 'inventory:stock_list' %}" class="btn-create">📊 Stock List</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="record-count">
+        Showing {{ page_obj.start_index }} - {{ page_obj.end_index }} of {{ page_obj.paginator.count }} inventory movements
+    </div>
+
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID Movement</th>
+                    <th>Date</th>
+                    <th>Location</th>
+                    <th>Material</th>
+                    <th>Quantity</th>
+                    <th>Unit</th>
+                    <th>Movement Type</th>
+                    <th>Price</th>
+                    <th>Currency</th>
+                    <th>Created By</th>
+                    {% if permissions.inventory == 2 %}<th>Actions</th>{% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for mov in page_obj %}
+                <tr>
+                    <td>{{ mov.id_inventory_movement }}</td>
+                    <td>{{ mov.created_at|date:"Y-m-d H:i" }}</td>
+                    <td>{{ mov.id_location.name }}</td>
+                    <td>{{ mov.id_material.name }}</td>
+                    <td>{{ mov.quantity }}</td>
+                    <td>{{ mov.unit_type.symbol }}</td>
+                    <td>{{ mov.movement_type.name }}</td>
+                    <td>{{ mov.price }}</td>
+                    <td>{{ mov.currency.symbol }}</td>
+                    <td>{{ mov.created_by.username|default:"N/A" }}</td>
+                    {% if permissions.inventory == 2 %}
+                    <td class="action-links">
+                        <a href="{% url 'inventory:edit_movement' mov.pk %}" class="btn-edit">Edit</a>
+                        <form action="{% url 'inventory:delete_movement' mov.pk %}" method="POST" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-delete" onclick="return confirm('Are you sure you want to delete this movement?')">Delete</button>
+                        </form>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr class="empty-row"><td colspan="11">No inventory movements found</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="pagination-wrapper">
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+                <a href="?page=1&location={{ request.GET.location }}&type={{ request.GET.type }}&date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}">First</a>
+                <a href="?page={{ page_obj.previous_page_number }}&location={{ request.GET.location }}&type={{ request.GET.type }}&date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}">Previous</a>
+            {% endif %}
+
+            {% for i in page_obj.paginator.page_range %}
+                {% if page_obj.number == i %}
+                    <span class="current">{{ i }}</span>
+                {% else %}
+                    <a href="?page={{ i }}&location={{ request.GET.location }}&type={{ request.GET.type }}&date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}">{{ i }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}&location={{ request.GET.location }}&type={{ request.GET.type }}&date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}">Next</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}&location={{ request.GET.location }}&type={{ request.GET.type }}&date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}">Last</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

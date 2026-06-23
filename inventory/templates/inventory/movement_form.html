@@ -1,0 +1,252 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/form.css' %}">
+<link rel="stylesheet" href="{% static 'inventory/css/movement_form.css' %}">
+
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-header">
+        <h1>{{ title }}</h1>
+        <p>
+            {% if is_edit %}
+                Update the details of this inventory movement.
+            {% else %}
+                Register a new inventory movement (receipt, issue, adjustment, etc.)
+            {% endif %}
+        </p>
+    </div>
+
+    <div class="form-card">
+        <form id="movement-form" method="post" onsubmit="return false">
+            {% csrf_token %}
+
+            <!-- Campos ocultos para modo edición -->
+            {% if is_edit %}
+                <input type="hidden" id="edit_mode" value="true">
+                <input type="hidden" id="movement_pk" value="{{ movement.pk }}">
+            {% else %}
+                <input type="hidden" id="edit_mode" value="false">
+            {% endif %}
+
+            <div class="form-fields-column">
+                <!-- Ubicación -->
+                <div class="form-field">
+                    <label for="location">Location *</label>
+                    <select id="location" name="location" required>
+                        <option value="">-- Select Location --</option>
+                        {% for loc in locations %}
+                        <option value="{{ loc.pk }}" {% if is_edit and movement.id_location.pk == loc.pk %}selected{% endif %}>
+                            {{ loc.name }} ({{ loc.code }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="helptext">Select the warehouse or storage location</small>
+                </div>
+
+                <!-- Material -->
+                <div class="form-field">
+                    <label for="material">Material *</label>
+                    <select id="material" name="material" required>
+                        <option value="">-- Select Material --</option>
+                        {% for mat in materials %}
+                        <option value="{{ mat.pk }}" data-unit="{{ mat.unit.pk }}" {% if is_edit and movement.id_material.pk == mat.pk %}selected{% endif %}>
+                            {{ mat.id_material }} - {{ mat.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="helptext">Choose the material to move</small>
+                </div>
+
+                <!-- Unidad -->
+                <div class="form-field">
+                    <label for="unit">Unit *</label>
+                    <select id="unit" name="unit" required>
+                        <option value="">-- Select Unit --</option>
+                        {% for u in units %}
+                        <option value="{{ u.pk }}" {% if is_edit and movement.unit_type.pk == u.pk %}selected{% endif %}>
+                            {{ u.symbol }} ({{ u.name }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="helptext">Unit of measurement (auto-filled if possible)</small>
+                </div>
+
+                <!-- Cantidad -->
+                <div class="form-field">
+                    <label for="quantity">Quantity *</label>
+                    <input type="number" id="quantity" name="quantity" min="1" step="1" 
+                           value="{% if is_edit %}{{ movement.quantity }}{% endif %}" 
+                           placeholder="0" required>
+                    <small class="helptext">Enter the quantity to move (positive integer)</small>
+                </div>
+
+                <!-- Tipo de movimiento -->
+                <div class="form-field">
+                    <label for="movement_type">Movement Type *</label>
+                    <select id="movement_type" name="movement_type" required>
+                        <option value="">-- Select Type --</option>
+                        {% for mt in movement_types %}
+                        <option value="{{ mt.pk }}" {% if is_edit and movement.movement_type.pk == mt.pk %}selected{% endif %}>
+                            {{ mt.name }} ({{ mt.symbol }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="helptext">Select the nature of the movement (PUR = Purchase, SAL = Sale, etc.)</small>
+                </div>
+
+                <!-- Precio -->
+                <div class="form-field">
+                    <label for="price">Unit Price *</label>
+                    <input type="number" id="price" name="price" min="0" step="0.01" 
+                           value="{% if is_edit %}{{ movement.price }}{% endif %}" 
+                           placeholder="0.00" required>
+                    <small class="helptext">Price per unit in the selected currency</small>
+                </div>
+
+                <!-- Moneda -->
+                <div class="form-field">
+                    <label for="currency">Currency *</label>
+                    <select id="currency" name="currency" required>
+                        <option value="">-- Select Currency --</option>
+                        {% for cur in currencies %}
+                        <option value="{{ cur.pk }}" {% if is_edit and movement.currency.pk == cur.pk %}selected{% endif %}>
+                            {{ cur.code }} - {{ cur.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="helptext">Currency of the unit price</small>
+                </div>
+
+                <!-- En edición, mostrar el tipo de cambio (solo lectura) -->
+                {% if is_edit %}
+                <div class="form-field">
+                    <label for="exchange_rate">Exchange Rate (used at creation)</label>
+                    <input type="text" id="exchange_rate" name="exchange_rate" 
+                           value="{{ movement.exchange_rate }}" readonly>
+                    <small class="helptext">This value was recorded at the time of the movement and cannot be changed.</small>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="form-actions">
+                <a href="{% url 'inventory:movement_list' %}" class="btn-cancel">Cancel</a>
+                <button type="submit" id="submit-mov-btn" class="btn-submit">
+                    {% if is_edit %}Update Movement{% else %}Create Movement{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function() {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const form = document.getElementById('movement-form');
+        const submitBtn = document.getElementById('submit-mov-btn');
+        const isEdit = document.getElementById('edit_mode').value === 'true';
+        const movementPk = document.getElementById('movement_pk') ? document.getElementById('movement_pk').value : null;
+
+        // Autocompletar unidad al seleccionar material (solo en creación)
+        const materialSelect = document.getElementById('material');
+        const unitSelect = document.getElementById('unit');
+
+        materialSelect.addEventListener('change', function() {
+            if (!isEdit) {
+                const selectedOption = this.options[this.selectedIndex];
+                const unitPk = selectedOption.getAttribute('data-unit');
+                if (unitPk) {
+                    for (let opt of unitSelect.options) {
+                        if (opt.value === unitPk) {
+                            unitSelect.value = unitPk;
+                            break;
+                        }
+                    }
+                }
+            }
+        });
+
+        function collectFormData() {
+            const location = document.getElementById('location').value;
+            const material = document.getElementById('material').value;
+            const unit = document.getElementById('unit').value;
+            const quantity = document.getElementById('quantity').value;
+            const movement_type = document.getElementById('movement_type').value;
+            const price = document.getElementById('price').value;
+            const currency = document.getElementById('currency').value;
+
+            if (!location || !material || !unit || !quantity || !movement_type || !price || !currency) {
+                alert('All fields are required.');
+                return null;
+            }
+
+            return {
+                location: parseInt(location),
+                material: parseInt(material),
+                unit: parseInt(unit),
+                quantity: parseInt(quantity),
+                movement_type: parseInt(movement_type),
+                price: parseFloat(price),
+                currency: parseInt(currency)
+            };
+        }
+
+        function getSubmitUrl() {
+            if (isEdit && movementPk) {
+                return `/inventory/movements/update/${movementPk}/`;
+            }
+            // CORREGIDO: coincide con la ruta definida en urls.py
+            return '/inventory/movements/post/';
+        }
+
+        async function submitMovement() {
+            const payload = collectFormData();
+            if (!payload) return;
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = isEdit ? 'Updating...' : 'Creating...';
+
+            try {
+                const response = await fetch(getSubmitUrl(), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Server error');
+                }
+
+                if (result.success) {
+                    alert(result.message);
+                    window.location.href = result.redirect_url || '/inventory/movement_list/';
+                } else {
+                    throw new Error(result.error || 'Unknown error');
+                }
+            } catch (error) {
+                alert(`Failed to ${isEdit ? 'update' : 'create'} movement: ${error.message}`);
+                submitBtn.disabled = false;
+                submitBtn.textContent = isEdit ? 'Update Movement' : 'Create Movement';
+            }
+        }
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            submitMovement();
+        });
+    })();
+</script>
+{% endblock %}

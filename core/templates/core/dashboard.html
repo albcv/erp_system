@@ -79,7 +79,7 @@
                 {% if permissions.inventory == 1 %}🔍 View only{% else %}✏️ Read and write{% endif %}
             </div>
             <p>Real‑time stock levels, movements, and adjustments.</p>
-            <a href="#" class="btn-access">Access →</a>
+            <a href="{% url 'inventory:movement_list' %}" class="btn-access">Access →</a>
         </div>
         {% endif %}
 
